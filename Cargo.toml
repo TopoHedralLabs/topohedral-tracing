@@ -1,0 +1,18 @@
+[package]
+name = "topohedral-tracing"
+version = "0.0.1"
+authors = ["John Ferguson <JAFerguson952@gmail.com>"]
+edition = "2021"
+repository = "https://github.com/TopoHedralLabs/topohedral-tracing"
+readme = "README.md"
+license = "MIT"
+description = "A library for tracing the execution of Rust programs. Provides both a compile-time switch and a runtime switch for tracing."
+publish = ["github"]
+
+[dependencies]
+colored = "2.1.0"
+log = {version = "0.4.22", features = ["std"]}
+
+[features]
+enable_trace = []
+
