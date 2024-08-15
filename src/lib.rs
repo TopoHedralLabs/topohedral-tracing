@@ -116,8 +116,6 @@ pub fn topo_log(target: &str, level: Level, location: &Location, args: Arguments
     }
 }
 //}}}
-
-
 //{{{ macro: trace
 #[macro_export]
 macro_rules! trace {
@@ -141,10 +139,7 @@ macro_rules! trace {
 macro_rules! debug{
     (target: $target:expr, $($arg:tt)+) => {
         #[cfg(feature = "enable_trace")]
-        {
-            let location = Location::caller();
-            topo_log($target, Level::Debug, location, format_args!($($arg)+));
-        }
+        topo_log($target, Level::Debug, Location::caller(), format_args!($($arg)+));
     };
     ($($arg:tt)+) => { 
 
@@ -157,19 +152,21 @@ macro_rules! debug{
      };
 }
 //}}}
-/* 
 //{{{ macro: info
 #[macro_export]
 macro_rules! info{
     (target: $target:expr, $($arg:tt)+) => {
         #[cfg(feature = "enable_trace")]
-        topo_log!($target, Level::Info, $($arg)+)
+        topo_log($target, Level::Info, Location::caller(), format_args!($($arg)+));
     };
     ($($arg:tt)+) => { 
-        let location = Location::caller();
-        let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+
         #[cfg(feature = "enable_trace")]
-        topo_log!(function_name, Level::Info, $($arg)+)
+        {
+            let location = Location::caller();
+            let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+            topo_log(function_name, Level::Info, location, format_args!($($arg)+));
+        }
      };
 }
 //}}}
@@ -178,32 +175,38 @@ macro_rules! info{
 macro_rules! warn{
     (target: $target:expr, $($arg:tt)+) => {
         #[cfg(feature = "enable_trace")]
-        topo_log!($target, Level::Warn, $($arg)+)
+        topo_log($target, Level::Warn, Location::caller(), format_args!($($arg)+));
     };
     ($($arg:tt)+) => { 
-        let location = Location::caller();
-        let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+
         #[cfg(feature = "enable_trace")]
-        topo_log!(function_name, Level::Warn, $($arg)+)
+        {
+            let location = Location::caller();
+            let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+            topo_log(function_name, Level::Warn, location, format_args!($($arg)+));
+        }
      };
 }
 //}}}
 //{{{ macro: error 
 #[macro_export]
-macro_rules! error{
+macro_rules! error {
     (target: $target:expr, $($arg:tt)+) => {
         #[cfg(feature = "enable_trace")]
-        topo_log!($target, Level::Error, $($arg)+)
+        topo_log($target, Level::Error, Location::caller(), format_args!($($arg)+));
     };
     ($($arg:tt)+) => { 
-        let location = Location::caller();
-        let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+
         #[cfg(feature = "enable_trace")]
-        topo_log!(function_name, Level::Error, $($arg)+)
+        {
+            let location = Location::caller();
+            let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+            topo_log(function_name, Level::Error, location, format_args!($($arg)+));
+        }
      };
 }
 //}}}
-*/
+
 
 //-------------------------------------------------------------------------------------------------
 //{{{ mod: tests
@@ -218,14 +221,14 @@ mod tests
         init().unwrap();
         trace!("Hello, world! This is a test {}", 5);
         trace!(target: "test",  "Hello, world! This is a test {}", 5);
-        // debug!("Hello, world! This is a test {}", 5);
-        // debug!(target: "test",  "Hello, world! This is a test {}", 5);
-        // info!("Hello, world! This is a test {}", 5);
-        // info!(target: "test",  "Hello, world! This is a test {}", 5);
-        // warn!("Hello, world! This is a test {}", 5);
-        // warn!(target: "test",  "Hello, world! This is a test {}", 5);
-        // error!("Hello, world! This is a test {}", 5);
-        // error!(target: "test",  "Hello, world! This is a test {}", 5);
+        debug!("Hello, world! This is a test {}", 5);
+        debug!(target: "test",  "Hello, world! This is a test {}", 5);
+        info!("Hello, world! This is a test {}", 5);
+        info!(target: "test",  "Hello, world! This is a test {}", 5);
+        warn!("Hello, world! This is a test {}", 5);
+        warn!(target: "test",  "Hello, world! This is a test {}", 5);
+        error!("Hello, world! This is a test {}", 5);
+        error!(target: "test",  "Hello, world! This is a test {}", 5);
     }
 
 }
