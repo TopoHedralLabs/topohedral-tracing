@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb", 
+            "request": "launch",
+            "name": "topohedral-tracing Unit Tests",
+            "cargo": {
+                "args": [
+                    "test", 
+                    "--features enable_trace",
+                    "--lib",
+                    "--no-run",
+                    "--package=topohedral-tracing"
+                ], 
+                "filter": {
+                    "name": "topohedral_tracing",
+                    "kind": "lib",
+                }
+            },
+            "args": [], 
+            "cwd": "${workspaceFolder}", 
+            "sourceLanguages": ["rust"]
+        }
+    ]
+}

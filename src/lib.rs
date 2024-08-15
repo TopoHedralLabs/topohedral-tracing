@@ -10,9 +10,10 @@
 //{{{ crate imports
 //}}}
 //{{{ std imports
-use std::any::type_name;
+use std::{any::type_name, fmt::Arguments};
 use std::sync::Mutex;
 use std::thread;
+use std::panic::Location;
 //}}}
 //{{{ dep imports
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
@@ -48,53 +49,90 @@ pub fn init() -> Result<(), SetLoggerError> {
     let mut logger_guard = LOGGER.lock().unwrap();
     *logger_guard = Some(Box::new(TopoHedralLogger));
     log::set_max_level(LevelFilter::Trace);
+    // log::set_boxed_logger(logger_guard.take().unwrap())?;
     Ok(())
 }
 //}}}
 //{{{ macro: topo_log
-macro_rules! topo_log {
-    ($target:expr, $level:expr, $($arg:tt)*) => {{
+// #[macro_export]
+// macro_rules! topo_log {
+//     ($target:expr, $level:expr, $($arg:tt)*) => {{
 
-        let mut logger_guard = LOGGER.lock().unwrap();
-        if let Some(logger) = &mut *logger_guard {
-            let location = std::panic::Location::caller();
-            let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
-            let thread_id = thread::current().id();
+//         let mut logger_guard = LOGGER.lock().unwrap();
+//         if let Some(logger) = &mut *logger_guard {
+//             let location = Location::caller();
+//             let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+//             let thread_id = thread::current().id();
 
-            let log_color = match $level{
-                Level::Error => "red",
-                Level::Warn => "yellow",
-                Level::Info => "green",
-                Level::Debug => "blue",
-                Level::Trace => "magenta",
-            };
+//             let log_color = match $level{
+//                 Level::Error => "red",
+//                 Level::Warn => "yellow",
+//                 Level::Info => "green",
+//                 Level::Debug => "blue",
+//                 Level::Trace => "magenta",
+//             };
 
-            logger.log(&log::Record::builder()
-                .args(format_args!("[{} - Thread {} - {}:{}] {}",
-                                    $level.as_str().color(log_color),
-                                    thread_id.as_u64(),
-                                    function_name,
-                                    location.line(), format_args!($($arg)*)))
-                .level($level)
-                .target($target)
-                .build());
-        }
+//             logger.log(&log::Record::builder()
+//                 .args(format_args!("[{} - Thread {} - {}:{}] {}",
+//                                     $level.as_str().color(log_color),
+//                                     thread_id.as_u64(),
+//                                     function_name,
+//                                     location.line(), format_args!($($arg)*)))
+//                 .level($level)
+//                 .target($target)
+//                 .build());
+//         }
 
-    }}
+//     }}
+// }
+//}}}
+//{{{ fun: topo_log
+pub fn topo_log(target: &str, level: Level, location: &Location, args: Arguments) {
+
+    let mut logger_guard = LOGGER.lock().unwrap();
+    if let Some(logger) = &mut *logger_guard {
+
+        let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+        let thread_id = thread::current().id();
+
+        let log_color = match level{
+            Level::Error => "red",
+            Level::Warn => "yellow",
+            Level::Info => "green",
+            Level::Debug => "blue",
+            Level::Trace => "magenta",
+        };
+
+        logger.log(&log::Record::builder()
+            .args(format_args!("[{} - Thread {} - {}:{}] {}",
+                                level.as_str().color(log_color),
+                                thread_id.as_u64(),
+                                function_name,
+                                location.line(), 
+                                args))
+            .level(level)
+            .target(target)
+            .build());
+    }
 }
 //}}}
+
+
 //{{{ macro: trace
 #[macro_export]
 macro_rules! trace {
     (target: $target:expr, $($arg:tt)+) => {
         #[cfg(feature = "enable_trace")]
-        topo_log!($target, Level::Trace, $($arg)+)
+        topo_log($target, Level::Trace, Location::caller(), format_args!($($arg)+));
     };
     ($($arg:tt)+) => { 
-        let location = std::panic::Location::caller();
-        let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+
         #[cfg(feature = "enable_trace")]
-        topo_log!(function_name, Level::Trace, $($arg)+)
+        {
+            let location = Location::caller();
+            let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+            topo_log(function_name, Level::Trace, location, format_args!($($arg)+));
+        }
      };
 }
 //}}}
@@ -103,16 +141,23 @@ macro_rules! trace {
 macro_rules! debug{
     (target: $target:expr, $($arg:tt)+) => {
         #[cfg(feature = "enable_trace")]
-        topo_log!($target, Level::Debug, $($arg)+)
+        {
+            let location = Location::caller();
+            topo_log($target, Level::Debug, location, format_args!($($arg)+));
+        }
     };
     ($($arg:tt)+) => { 
-        let location = std::panic::Location::caller();
-        let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+
         #[cfg(feature = "enable_trace")]
-        topo_log!(function_name, Level::Debug, $($arg)+)
+        {
+            let location = Location::caller();
+            let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
+            topo_log(function_name, Level::Debug, location, format_args!($($arg)+));
+        }
      };
 }
 //}}}
+/* 
 //{{{ macro: info
 #[macro_export]
 macro_rules! info{
@@ -121,7 +166,7 @@ macro_rules! info{
         topo_log!($target, Level::Info, $($arg)+)
     };
     ($($arg:tt)+) => { 
-        let location = std::panic::Location::caller();
+        let location = Location::caller();
         let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
         #[cfg(feature = "enable_trace")]
         topo_log!(function_name, Level::Info, $($arg)+)
@@ -136,7 +181,7 @@ macro_rules! warn{
         topo_log!($target, Level::Warn, $($arg)+)
     };
     ($($arg:tt)+) => { 
-        let location = std::panic::Location::caller();
+        let location = Location::caller();
         let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
         #[cfg(feature = "enable_trace")]
         topo_log!(function_name, Level::Warn, $($arg)+)
@@ -151,14 +196,14 @@ macro_rules! error{
         topo_log!($target, Level::Error, $($arg)+)
     };
     ($($arg:tt)+) => { 
-        let location = std::panic::Location::caller();
+        let location = Location::caller();
         let function_name = location.file().rsplitn(2, '/').next().unwrap_or("");
         #[cfg(feature = "enable_trace")]
         topo_log!(function_name, Level::Error, $($arg)+)
      };
 }
 //}}}
-
+*/
 
 //-------------------------------------------------------------------------------------------------
 //{{{ mod: tests
@@ -173,14 +218,14 @@ mod tests
         init().unwrap();
         trace!("Hello, world! This is a test {}", 5);
         trace!(target: "test",  "Hello, world! This is a test {}", 5);
-        debug!("Hello, world! This is a test {}", 5);
-        debug!(target: "test",  "Hello, world! This is a test {}", 5);
-        info!("Hello, world! This is a test {}", 5);
-        info!(target: "test",  "Hello, world! This is a test {}", 5);
-        warn!("Hello, world! This is a test {}", 5);
-        warn!(target: "test",  "Hello, world! This is a test {}", 5);
-        error!("Hello, world! This is a test {}", 5);
-        error!(target: "test",  "Hello, world! This is a test {}", 5);
+        // debug!("Hello, world! This is a test {}", 5);
+        // debug!(target: "test",  "Hello, world! This is a test {}", 5);
+        // info!("Hello, world! This is a test {}", 5);
+        // info!(target: "test",  "Hello, world! This is a test {}", 5);
+        // warn!("Hello, world! This is a test {}", 5);
+        // warn!(target: "test",  "Hello, world! This is a test {}", 5);
+        // error!("Hello, world! This is a test {}", 5);
+        // error!(target: "test",  "Hello, world! This is a test {}", 5);
     }
 
 }
