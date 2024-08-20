@@ -13,7 +13,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::thread;
-use std::{fmt::Arguments, iter::Filter};
+use std::fmt::Arguments;
 //}}}
 //{{{ dep imports
 use colored::Colorize;
@@ -41,8 +41,8 @@ impl TopoHedralLogger {
             Ok(val) => {
                 let targets: Vec<&str> = val.split(",").collect();
                 for key in targets {
-                    let mut target = String::new();
-                    let mut level = LevelFilter::Off;
+                    let target: String;
+                    let level: LevelFilter;
                     if  key.contains("=") {
 
                         let peices: Vec<&str> = key.split("=").collect();
@@ -62,7 +62,7 @@ impl TopoHedralLogger {
                         level = LevelFilter::Info;
                     }
 
-                    if (target == "all") {
+                    if target == "all" {
                         all = level;
                     }
                     else {
