@@ -1,8 +1,54 @@
 //! Tracing for the topohedral collection of crates.
+//! 
+//! # Introduction
 //!
 //! This crate provides a tracing mechanism for the topohedral collection of crates.
-//! This also includes a feature ``enbale_trace`` which dependent crates can turn on to enable
-//! tracing in the their code.
+//! It is similar to the `env_logger` crate, and uses a similar syntax to specify the logging 
+//! filters. However it differs from `env_logger` in that it also provides a compile-time option to 
+//! enable or disable logging. It uses the `log` crate interface, therefore it provides five 
+//! macros for logging which are listed in decreasing order of verbosity:
+//! 
+//! - `trace!` 
+//! - `debug!`
+//! - `info!`
+//! - `warn!`
+//! - `error!`. 
+//! 
+//! # Usage
+//! 
+//! ## Compile time configuration
+//! 
+//! The printing code is only compiled if the `enable_trace` feature is enabled. Otherwise the 
+//! code resolves to nothing. Any crate which uses this crate can enable logging by having the 
+//! following in their `Cargo.toml` file:
+//! 
+//! ``` toml
+//! [dependencies]
+//! topohedral-tracing = {<version etc>}
+//! 
+//! [features]
+//! enable_trace = ["topohedral-tracing/enable_trace"]
+//! ```
+//! 
+//! and compiling with the `enable_trace` feature. 
+//! 
+//! ## Runtime configuration
+//! 
+//! Even with logging enabled at compile time, runtime logging filter will be dafault print 
+//! nothing. This can be changed by setting the `TOPO_LOG` environment variable. This variable 
+//! has the following syntax:
+//! 
+//! ```shell
+//! export TOPO_LOG=<target>=<level>,<target>=<level>,...
+//! ```
+//! Additionally, there is a special target `all` which can be used to enable all logging of a 
+//! given level. So, for example, to log everything at level `debug` we can do:
+//! 
+//! ```shell
+//! export TOPO_LOG=all=debug
+//! ```
+//! 
+//! 
 //--------------------------------------------------------------------------------------------------
 
 #![feature(thread_id_value)]
@@ -102,6 +148,10 @@ impl log::Log for TopoHedralLogger {
 //}}}
 //}}}
 //{{{ fun: init
+/// Initialize the tracing system.
+/// 
+/// This must be called before any tracing can occur. Typically this is called from the main
+/// function of the program.
 pub fn init() -> Result<(), SetLoggerError> {
     let mut logger_guard = LOGGER.lock().unwrap();
     *logger_guard = Some(Box::new(TopoHedralLogger::new()));
@@ -111,6 +161,23 @@ pub fn init() -> Result<(), SetLoggerError> {
 }
 //}}}
 //{{{ fun: topo_log
+/// Logs a message with the specified target, level, module, line, and arguments.
+///
+/// This function is used internally by the `trace!`, `debug!`, and `info!` macros to log
+/// messages with the appropriate metadata. It acquires a lock on the `LOGGER` global
+/// variable, and if a logger is present, it logs the message with the specified
+/// attributes.
+///
+/// The `log_color` variable is used to determine the color of the log message based on
+/// the log level. The message is then formatted and logged using the logger's `log`
+/// method.
+/// 
+/// # Arguments
+/// - target: &str - The target of the log message.
+/// - level: Level - The level of the log message.
+/// - module: &str - The module of the log message.
+/// - line: u32 - The line of the log message.
+/// - args: Arguments - The arguments of the log message.
 pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: Arguments) {
     let mut logger_guard = LOGGER.lock().unwrap();
     if let Some(logger) = &mut *logger_guard {
@@ -144,6 +211,7 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: Argum
 }
 //}}}
 //{{{ macro: trace
+/// The `trace!` macro is used to log a trace message. Trace is the highest level of logging.
 #[macro_export]
 macro_rules! trace {
     (target: $target:expr, $($arg:tt)+) => {
@@ -166,6 +234,7 @@ macro_rules! trace {
 }
 //}}}
 //{{{ macro: debug
+///  The `debug!` macro is used to log a debug message. Debug is the second highest level of logging.
 #[macro_export]
 macro_rules! debug{
     (target: $target:expr, $($arg:tt)+) => {
@@ -188,6 +257,7 @@ macro_rules! debug{
 }
 //}}}
 //{{{ macro: info
+/// The `info!` macro is used to log an info message. Info is the third highest level of logging.
 #[macro_export]
 macro_rules! info{
     (target: $target:expr, $($arg:tt)+) => {
@@ -210,6 +280,7 @@ macro_rules! info{
 }
 //}}}
 //{{{ macro: warn
+/// The `warn!` macro is used to log a warning message. Warn is the fourth highest level of logging.
 #[macro_export]
 macro_rules! warn{
     (target: $target:expr, $($arg:tt)+) => {
@@ -232,6 +303,7 @@ macro_rules! warn{
 }
 //}}}
 //{{{ macro: error
+/// The `error!` macro is used to log an error message. Error is the lowest level of logging.
 #[macro_export]
 macro_rules! error {
     (target: $target:expr, $($arg:tt)+) => {
