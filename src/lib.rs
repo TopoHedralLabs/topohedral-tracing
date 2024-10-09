@@ -142,8 +142,8 @@ impl TopoHedralLogger {
         }
 
         Self {
-            filters: filters,
-            all: all,
+            filters,
+            all,
         }
     }
 }
@@ -157,8 +157,8 @@ impl log::Log for TopoHedralLogger {
             None => self.all,
         };
         target_level = std::cmp::max(target_level, self.all);
-        let is_enabled = metadata.level() <= target_level;
-        is_enabled
+        
+        metadata.level() <= target_level
     }
 
     fn log(&self, record: &Record) {
