@@ -141,10 +141,7 @@ impl TopoHedralLogger {
             Err(std::env::VarError::NotUnicode(_)) => {}
         }
 
-        Self {
-            filters,
-            all,
-        }
+        Self { filters, all }
     }
 }
 //}}}
@@ -157,7 +154,7 @@ impl log::Log for TopoHedralLogger {
             None => self.all,
         };
         target_level = std::cmp::max(target_level, self.all);
-        
+
         metadata.level() <= target_level
     }
 
