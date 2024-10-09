@@ -10,15 +10,16 @@ on:
   
 jobs: 
   build-and-test:
-    runs-on: ${{matrix.os}}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
+        with: 
+          profile: minimal
+          toolchain: stable
+          components: rustfmt, clippy
       
       - name: Build
         uses: actions-rs/cargo@v1
