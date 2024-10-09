@@ -51,7 +51,6 @@
 //! 
 //--------------------------------------------------------------------------------------------------
 
-#![feature(thread_id_value)]
 
 //{{{ crate imports
 //}}}
@@ -59,14 +58,36 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::thread;
-use std::fmt::Arguments;
+use std::fmt;
 //}}}
 //{{{ dep imports
 use colored::Colorize;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
 //}}}
 //--------------------------------------------------------------------------------------------------
+//{{{ impl fmt::Display for ThreadId
+struct ThreadIdWrapper(thread::ThreadId);
+impl fmt::Display for ThreadIdWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Use the Debug implementation to extract the number
+        let thread_id_str = format!("{:?}", self.0);
 
+        // Extract the number part from "ThreadId(num)"
+        let num_str = if let Some(start) = thread_id_str.find('(') {
+            if let Some(end) = thread_id_str.find(')') {
+                &thread_id_str[start + 1..end]
+            } else {
+                "Unknown"
+            }
+        } else {
+            "Unknown"
+        };
+
+        // Now format it respecting width and alignment
+        f.write_str(&format!("{:width$}", num_str, width = f.width().unwrap_or(0)))
+    }
+}
+//}}}
 //{{{ collection: constants
 static LOGGER: Mutex<Option<Box<dyn log::Log>>> = Mutex::new(None);
 //}}}
@@ -77,6 +98,7 @@ struct TopoHedralLogger {
     filters: HashMap<String, LevelFilter>,
 }
 //}}}
+//{{{ impl TopoHedralLogger
 impl TopoHedralLogger {
     fn new() -> Self {
 
@@ -123,6 +145,7 @@ impl TopoHedralLogger {
         Self { filters: filters, all: all }
     }
 }
+//}}}
 //{{{ impl log::Log for TopoHedralLogger
 impl log::Log for TopoHedralLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
@@ -178,7 +201,7 @@ pub fn init() -> Result<(), SetLoggerError> {
 /// - module: &str - The module of the log message.
 /// - line: u32 - The line of the log message.
 /// - args: Arguments - The arguments of the log message.
-pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: Arguments) {
+pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::Arguments) {
     let mut logger_guard = LOGGER.lock().unwrap();
     if let Some(logger) = &mut *logger_guard {
         let thread_id = thread::current().id();
@@ -194,9 +217,9 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: Argum
         logger.log(
             &log::Record::builder()
                 .args(format_args!(
-                    "[{} - Thread {} - {}:{}] {}",
+                    "[{:<5} - {:<3} - {}:{}] {}",
                     level.as_str().color(log_color),
-                    thread_id.as_u64(),
+                    ThreadIdWrapper(thread_id),
                     module,
                     line,
                     args
@@ -335,7 +358,7 @@ mod tests {
     #[test]
     fn test_topo_log() {
 
-        std::env::set_var("TOPO_LOG", "test=5");
+        std::env::set_var("TOPO_LOG", "all=5");
         init().unwrap();
         trace!("Hello, world! This is a test 1 {}", 5);
         trace!(target: "test",  "Hello, world! This is a test 2 {}", 5);
