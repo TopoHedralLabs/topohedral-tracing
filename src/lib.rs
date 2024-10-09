@@ -1,64 +1,63 @@
 //! Tracing for the topohedral collection of crates.
-//! 
+//!
 //! # Introduction
 //!
 //! This crate provides a tracing mechanism for the topohedral collection of crates.
-//! It is similar to the `env_logger` crate, and uses a similar syntax to specify the logging 
-//! filters. However it differs from `env_logger` in that it also provides a compile-time option to 
-//! enable or disable logging. It uses the `log` crate interface, therefore it provides five 
+//! It is similar to the `env_logger` crate, and uses a similar syntax to specify the logging
+//! filters. However it differs from `env_logger` in that it also provides a compile-time option to
+//! enable or disable logging. It uses the `log` crate interface, therefore it provides five
 //! macros for logging which are listed in decreasing order of verbosity:
-//! 
-//! - `trace!` 
+//!
+//! - `trace!`
 //! - `debug!`
 //! - `info!`
 //! - `warn!`
-//! - `error!`. 
-//! 
+//! - `error!`.
+//!
 //! # Usage
-//! 
+//!
 //! ## Compile time configuration
-//! 
-//! The printing code is only compiled if the `enable_trace` feature is enabled. Otherwise the 
-//! code resolves to nothing. Any crate which uses this crate can enable logging by having the 
+//!
+//! The printing code is only compiled if the `enable_trace` feature is enabled. Otherwise the
+//! code resolves to nothing. Any crate which uses this crate can enable logging by having the
 //! following in their `Cargo.toml` file:
-//! 
+//!
 //! ``` toml
 //! [dependencies]
 //! topohedral-tracing = {<version etc>}
-//! 
+//!
 //! [features]
 //! enable_trace = ["topohedral-tracing/enable_trace"]
 //! ```
-//! 
-//! and compiling with the `enable_trace` feature. 
-//! 
+//!
+//! and compiling with the `enable_trace` feature.
+//!
 //! ## Runtime configuration
-//! 
-//! Even with logging enabled at compile time, runtime logging filter will be dafault print 
-//! nothing. This can be changed by setting the `TOPO_LOG` environment variable. This variable 
+//!
+//! Even with logging enabled at compile time, runtime logging filter will be dafault print
+//! nothing. This can be changed by setting the `TOPO_LOG` environment variable. This variable
 //! has the following syntax:
-//! 
+//!
 //! ```shell
 //! export TOPO_LOG=<target>=<level>,<target>=<level>,...
 //! ```
-//! Additionally, there is a special target `all` which can be used to enable all logging of a 
+//! Additionally, there is a special target `all` which can be used to enable all logging of a
 //! given level. So, for example, to log everything at level `debug` we can do:
-//! 
+//!
 //! ```shell
 //! export TOPO_LOG=all=debug
 //! ```
-//! 
-//! 
+//!
+//!
 //--------------------------------------------------------------------------------------------------
-
 
 //{{{ crate imports
 //}}}
 //{{{ std imports
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::Mutex;
 use std::thread;
-use std::fmt;
 //}}}
 //{{{ dep imports
 use colored::Colorize;
@@ -84,7 +83,11 @@ impl fmt::Display for ThreadIdWrapper {
         };
 
         // Now format it respecting width and alignment
-        f.write_str(&format!("{:width$}", num_str, width = f.width().unwrap_or(0)))
+        f.write_str(&format!(
+            "{:width$}",
+            num_str,
+            width = f.width().unwrap_or(0)
+        ))
     }
 }
 //}}}
@@ -101,7 +104,6 @@ struct TopoHedralLogger {
 //{{{ impl TopoHedralLogger
 impl TopoHedralLogger {
     fn new() -> Self {
-
         let mut filters = HashMap::<String, LevelFilter>::new();
         let mut all = LevelFilter::Off;
 
@@ -111,29 +113,26 @@ impl TopoHedralLogger {
                 for key in targets {
                     let target: String;
                     let level: LevelFilter;
-                    if  key.contains("=") {
-
+                    if key.contains("=") {
                         let peices: Vec<&str> = key.split("=").collect();
                         target = peices[0].to_string();
 
                         level = match peices[1] {
                             "trace" | "5" => LevelFilter::Trace,
-                            "debug" | "4" => LevelFilter::Debug,    
+                            "debug" | "4" => LevelFilter::Debug,
                             "info" | "3" => LevelFilter::Info,
                             "warn" | "2" => LevelFilter::Warn,
                             "error" | "1" => LevelFilter::Error,
                             _ => LevelFilter::Info,
                         }
-                    }
-                    else {
+                    } else {
                         target = key.to_string();
                         level = LevelFilter::Info;
                     }
 
                     if target == "all" {
                         all = level;
-                    }
-                    else {
+                    } else {
                         filters.insert(target, level);
                     }
                 }
@@ -142,14 +141,16 @@ impl TopoHedralLogger {
             Err(std::env::VarError::NotUnicode(_)) => {}
         }
 
-        Self { filters: filters, all: all }
+        Self {
+            filters: filters,
+            all: all,
+        }
     }
 }
 //}}}
 //{{{ impl log::Log for TopoHedralLogger
 impl log::Log for TopoHedralLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-
         let target = metadata.target();
         let mut target_level = match self.filters.get(target) {
             Some(level) => *level,
@@ -172,7 +173,7 @@ impl log::Log for TopoHedralLogger {
 //}}}
 //{{{ fun: init
 /// Initialize the tracing system.
-/// 
+///
 /// This must be called before any tracing can occur. Typically this is called from the main
 /// function of the program.
 pub fn init() -> Result<(), SetLoggerError> {
@@ -194,7 +195,7 @@ pub fn init() -> Result<(), SetLoggerError> {
 /// The `log_color` variable is used to determine the color of the log message based on
 /// the log level. The message is then formatted and logged using the logger's `log`
 /// method.
-/// 
+///
 /// # Arguments
 /// - target: &str - The target of the log message.
 /// - level: Level - The level of the log message.
@@ -357,7 +358,6 @@ mod tests {
 
     #[test]
     fn test_topo_log() {
-
         std::env::set_var("TOPO_LOG", "all=5");
         init().unwrap();
         trace!("Hello, world! This is a test 1 {}", 5);
