@@ -1,0 +1,31 @@
+name: Release
+
+on: 
+  push: 
+    tags:      
+      - v[0-9]+.[0-9]+.[0-9]+
+
+
+jobs: 
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with: 
+          toolchain: stable
+          components: rustfmt, clippy 
+      
+      - name: Build
+        run: cargo build --verbose
+      
+      - name: Test
+        run: cargo test --verbose 
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy -- -D warnings
