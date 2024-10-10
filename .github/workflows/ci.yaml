@@ -14,33 +14,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
         with: 
-          profile: minimal
           toolchain: stable
-          components: rustfmt, clippy
+          components: rustfmt, clippy 
       
       - name: Build
-        uses: actions-rs/cargo@v1
-        with: 
-          command: build
-          args: --verbose
+        run: cargo build --verbose
       
       - name: Test
-        uses: actions-rs/cargo@v1
-        with: 
-          command: test
-          args: --verbose
+        run: cargo test --verbose 
 
       - name: Check formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
 
       - name: Run clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
+          run cargoo clippy -- -D warnings
