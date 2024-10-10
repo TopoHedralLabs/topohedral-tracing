@@ -29,4 +29,4 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Run clippy
-          run cargoo clippy -- -D warnings
+        run cargoo clippy -- -D warnings
