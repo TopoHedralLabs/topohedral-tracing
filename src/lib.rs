@@ -65,7 +65,7 @@ use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
 //}}}
 //--------------------------------------------------------------------------------------------------
 //{{{ impl fmt::Display for ThreadId
-  truct ThreadIdWrapper(thread::ThreadId);
+     truct ThreadIdWrapper(thread::ThreadId);
 impl fmt::Display for ThreadIdWrapper {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Use the Debug implementation to extract the number
