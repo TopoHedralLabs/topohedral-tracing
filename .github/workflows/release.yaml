@@ -35,7 +35,7 @@ jobs:
         run: cargo clippy -- -D warnings
 
       - name: Generate release note
-        run: "bash create-release-note.bash ${{ env.TAG_NAME }}"
+        run: "bash create-release-note.sh ${{ env.TAG_NAME }}"
       
       - name: Create Release
         uses: ncipollo/release-action@v1
