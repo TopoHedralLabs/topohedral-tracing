@@ -13,6 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Extract tag name
+        id: extract_tag
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
       - uses: dtolnay/rust-toolchain@stable
         with: 
           toolchain: stable
@@ -29,3 +33,14 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy -- -D warnings
+
+      - name: Generate release note
+        run: "bash create-release-note.bash ${{ env.TAG_NAME }}"
+      
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.JF_TOKEN }}
+          tag: ${{ env.TAG_NAME }}
+          bodyFile: "release-note.md"
+      
