@@ -7,7 +7,7 @@ repository = "https://github.com/TopoHedralLabs/topohedral-tracing"
 readme = "README.md"
 license = "MIT"
 description = "A library for tracing the execution of Rust programs. Provides both a compile-time switch and a runtime switch for tracing."
-publish = ["github"]
+publish = ["cloudsmith"]
 
 [dependencies]
 colored = "2.1.0"

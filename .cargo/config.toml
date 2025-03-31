@@ -1,2 +1,2 @@
 [registries]
-github = { index = "sparse+https://github.com/TopoHedralLabs/cargo-registry" }
+cloudsmith = { index = "env:CARGO_REGISTRIES_CLOUDSMITH_INDEX" }
