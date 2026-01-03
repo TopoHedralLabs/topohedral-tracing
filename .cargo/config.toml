@@ -1,2 +1,4 @@
-[registries]
-cloudsmith = { index = "env:CARGO_REGISTRIES_CLOUDSMITH_INDEX" }
+[registries.cloudsmith]
+index = "sparse+https://cargo.cloudsmith.io/topohedrallabs/topohedral/"
+token = "env:CARGO_REGISTRIES_CLOUDSMITH_TOKEN"
+credential-provider = "cargo:token"
