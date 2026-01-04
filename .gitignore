@@ -1,4 +1,5 @@
-/target
+target/
+archive/
 activate.zsh
 release-note.md
-archive/
+Cargo.lock
