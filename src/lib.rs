@@ -59,6 +59,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::sync::Mutex;
 use std::thread;
+use std::path::Path;
 //}}}
 //{{{ dep imports
 use colored::Colorize;
@@ -241,7 +242,7 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::
         logger.log(
             &log::Record::builder()
                 .args(format_args!(
-                    "[{:<5} - {:<3} - {}:{}] {}{}",
+                    "[{:<5}({}) {}:{}] {}{}",
                     level.as_str().color(log_color),
                     ThreadIdWrapper(thread_id),
                     module,
@@ -286,6 +287,15 @@ pub fn indent_dec() {
     }
 }
 //}}}
+//{{{ fun: get_filename
+#[doc(hidden)]
+pub fn get_filename<'a>(full_path: &'a str) -> &'a str {
+    Path::new(full_path)
+        .file_name()
+        .and_then(|os_str| os_str.to_str())
+        .unwrap_or("<unknown>")
+}
+//}}}
 //{{{ macro: trace
 /// The `trace!` macro is used to log a trace message. Trace is the highest level of logging.
 #[macro_export]
@@ -294,8 +304,8 @@ macro_rules! trace {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            $crate::topo_log($target, $crate::log::Level::Trace, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Trace, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -303,8 +313,9 @@ macro_rules! trace {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Trace, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Trace, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -317,8 +328,8 @@ macro_rules! debug{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            $crate::topo_log($target, $crate::log::Level::Debug, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Debug, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -326,8 +337,9 @@ macro_rules! debug{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Debug, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Debug, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -340,8 +352,8 @@ macro_rules! info{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            $crate::topo_log($target, $crate::log::Level::Info, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Info, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -349,8 +361,9 @@ macro_rules! info{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Info, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Info, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -363,8 +376,8 @@ macro_rules! warn{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            $crate::topo_log($target, $crate::log::Level::Warn, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Warn, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -372,8 +385,9 @@ macro_rules! warn{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Warn, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Warn, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -386,8 +400,8 @@ macro_rules! error {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            $crate::topo_log($target, $crate::log::Level::Error, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Error, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -395,8 +409,9 @@ macro_rules! error {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Error, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Error, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -453,8 +468,9 @@ macro_rules! trace_scope {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Trace, module, location.line(), format_args!("{}", $name));
+            $crate::topo_log(module, $crate::log::Level::Trace, filename, location.line(), format_args!("{}", $name));
             $crate::indent_inc();
         }
         $crate::IndentGuard::new()
@@ -463,8 +479,9 @@ macro_rules! trace_scope {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Trace, module, location.line(), format_args!("{}: {}", $name, format_args!($($arg)+)));
+            $crate::topo_log(module, $crate::log::Level::Trace, filename, location.line(), format_args!("{}: {}", $name, format_args!($($arg)+)));
             $crate::indent_inc();
         }
         $crate::IndentGuard::new()
