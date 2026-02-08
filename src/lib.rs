@@ -291,7 +291,7 @@ pub fn indent_dec() {
 #[doc(hidden)]
 pub fn get_filename<'a>(full_path: &'a str) -> &'a str {
     Path::new(full_path)
-        .file_name()
+        .file_stem()
         .and_then(|os_str| os_str.to_str())
         .unwrap_or("<unknown>")
 }
@@ -421,16 +421,19 @@ macro_rules! error {
 ///
 /// This struct is used by the `trace_scope!` macro to automatically manage indentation
 /// using RAII. When the guard goes out of scope, the indentation is automatically decremented.
-pub struct IndentGuard {
+pub struct IndentGuard<'a> {
     #[cfg(feature = "enable_trace")]
     _marker: (),
+    #[cfg(feature = "enable_trace")]
+    name: &'a str,
 }
 
-impl IndentGuard {
+impl<'a> IndentGuard<'a> {
     #[doc(hidden)]
     #[cfg(feature = "enable_trace")]
-    pub fn new() -> Self {
-        Self { _marker: () }
+    pub fn new(name: &'a str) -> Self {
+        indent_inc();
+        Self { _marker: (), name }
     }
 
     #[doc(hidden)]
@@ -441,9 +444,10 @@ impl IndentGuard {
 }
 
 #[cfg(feature = "enable_trace")]
-impl Drop for IndentGuard {
+impl<'a> Drop for IndentGuard<'a> {
     fn drop(&mut self) {
         indent_dec();
+        info!("Leaving {}", self.name);
     }
 }
 //}}}
@@ -466,25 +470,16 @@ impl Drop for IndentGuard {
 macro_rules! trace_scope {
     ($name:expr) => {{
         #[cfg(feature = "enable_trace")]
-        {
-            let location = std::panic::Location::caller();
-            let filename = $crate::get_filename(location.file());
-            let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Trace, filename, location.line(), format_args!("{}", $name));
-            $crate::indent_inc();
-        }
-        $crate::IndentGuard::new()
+        let _name = format!("{}", $name);
+        #[cfg(feature = "enable_trace")]
+        $crate::IndentGuard::new(&_name);
     }};
     ($name:expr, $($arg:tt)+) => {{
         #[cfg(feature = "enable_trace")]
-        {
-            let location = std::panic::Location::caller();
-            let filename = $crate::get_filename(location.file());
-            let module = module_path!();
-            $crate::topo_log(module, $crate::log::Level::Trace, filename, location.line(), format_args!("{}: {}", $name, format_args!($($arg)+)));
-            $crate::indent_inc();
-        }
-        $crate::IndentGuard::new()
+        let _name = format!("{}", $name);
+        // let _name = format!("{}: {}", $name, format_args!($($arg)+));
+        #[cfg(feature = "enable_trace")]
+        $crate::IndentGuard::new(&_name)
     }};
 }
 //}}}

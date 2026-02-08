@@ -4,6 +4,8 @@ use topohedral_tracing::{init, trace, debug, info, warn, error, trace_scope, ind
 
 #[test]
 fn test_topo_log() {
+
+    println!("");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
     trace!("Hello, world! This is a test 1 {}", 5);
@@ -20,6 +22,8 @@ fn test_topo_log() {
 
 #[test]
 fn test_indentation() {
+
+    println!("");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
 
@@ -40,6 +44,8 @@ fn test_indentation() {
 
 #[test]
 fn test_trace_scope() {
+
+    println!("");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
 
