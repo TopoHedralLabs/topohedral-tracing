@@ -61,7 +61,7 @@ use std::thread;
 //}}}
 //{{{ dep imports
 use colored::Colorize;
-use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
+use log::{Level, LevelFilter, Metadata, Record, SetLoggerError, Log};
 //}}}
 //--------------------------------------------------------------------------------------------------
 //{{{ impl fmt::Display for ThreadId
@@ -92,13 +92,14 @@ impl fmt::Display for ThreadIdWrapper {
 }
 //}}}
 //{{{ collection: constants
-static LOGGER: Mutex<Option<Box<dyn log::Log>>> = Mutex::new(None);
+static LOGGER: Mutex<Option<TopoHedralLogger>> = Mutex::new(None);
 //}}}
 //{{{ collection TopoHedralLogger
 //{{{ struct TopoHedralLogger
 struct TopoHedralLogger {
     all: LevelFilter,
     filters: HashMap<String, LevelFilter>,
+    indentation: HashMap<thread::ThreadId, usize>,
 }
 //}}}
 //{{{ impl TopoHedralLogger
@@ -141,7 +142,27 @@ impl TopoHedralLogger {
             Err(std::env::VarError::NotUnicode(_)) => {}
         }
 
-        Self { filters, all }
+        Self {
+            filters,
+            all,
+            indentation: HashMap::new(),
+        }
+    }
+
+    fn get_indent(&mut self, thread_id: thread::ThreadId) -> usize {
+        *self.indentation.get(&thread_id).unwrap_or(&0)
+    }
+
+    fn increment_indent(&mut self, thread_id: thread::ThreadId) {
+        let indent = self.indentation.entry(thread_id).or_insert(0);
+        *indent += 1;
+    }
+
+    fn decrement_indent(&mut self, thread_id: thread::ThreadId) {
+        let indent = self.indentation.entry(thread_id).or_insert(0);
+        if *indent > 0 {
+            *indent -= 1;
+        }
     }
 }
 //}}}
@@ -175,7 +196,7 @@ impl log::Log for TopoHedralLogger {
 /// function of the program.
 pub fn init() -> Result<(), SetLoggerError> {
     let mut logger_guard = LOGGER.lock().unwrap();
-    *logger_guard = Some(Box::new(TopoHedralLogger::new()));
+    *logger_guard = Some(TopoHedralLogger::new());
     log::set_max_level(LevelFilter::Trace);
     // log::set_boxed_logger(logger_guard.take().unwrap())?;
     Ok(())
@@ -203,6 +224,8 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::
     let mut logger_guard = LOGGER.lock().unwrap();
     if let Some(logger) = &mut *logger_guard {
         let thread_id = thread::current().id();
+        let indent = logger.get_indent(thread_id);
+        let indent_str = "    ".repeat(indent);
 
         let log_color = match level {
             Level::Error => "red",
@@ -215,11 +238,12 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::
         logger.log(
             &log::Record::builder()
                 .args(format_args!(
-                    "[{:<5} - {:<3} - {}:{}] {}",
+                    "[{:<5} - {:<3} - {}:{}] {}{}",
                     level.as_str().color(log_color),
                     ThreadIdWrapper(thread_id),
                     module,
                     line,
+                    indent_str,
                     args
                 ))
                 .file(Some(module))
@@ -228,6 +252,34 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::
                 .target(target)
                 .build(),
         );
+    }
+}
+//}}}
+//{{{ fun: indent_inc
+/// Increment the indentation level for the current thread.
+///
+/// This function is typically called when entering a function to increase the indentation
+/// level for subsequent log messages. Use this in conjunction with `indent_dec()` to
+/// visually track the call-stack depth in log output.
+pub fn indent_inc() {
+    let mut logger_guard = LOGGER.lock().unwrap();
+    if let Some(logger) = &mut *logger_guard {
+        let thread_id = thread::current().id();
+        logger.increment_indent(thread_id);
+    }
+}
+//}}}
+//{{{ fun: indent_dec
+/// Decrement the indentation level for the current thread.
+///
+/// This function is typically called when exiting a function to decrease the indentation
+/// level for subsequent log messages. Use this in conjunction with `indent_inc()` to
+/// visually track the call-stack depth in log output.
+pub fn indent_dec() {
+    let mut logger_guard = LOGGER.lock().unwrap();
+    if let Some(logger) = &mut *logger_guard {
+        let thread_id = thread::current().id();
+        logger.decrement_indent(thread_id);
     }
 }
 //}}}
@@ -346,6 +398,74 @@ macro_rules! error {
      };
 }
 //}}}
+//{{{ struct: IndentGuard
+/// A guard that automatically decrements indentation when dropped.
+///
+/// This struct is used by the `trace_scope!` macro to automatically manage indentation
+/// using RAII. When the guard goes out of scope, the indentation is automatically decremented.
+pub struct IndentGuard {
+    #[cfg(feature = "enable_trace")]
+    _marker: (),
+}
+
+impl IndentGuard {
+    #[cfg(feature = "enable_trace")]
+    fn new() -> Self {
+        Self { _marker: () }
+    }
+
+    #[cfg(not(feature = "enable_trace"))]
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+#[cfg(feature = "enable_trace")]
+impl Drop for IndentGuard {
+    fn drop(&mut self) {
+        indent_dec();
+    }
+}
+//}}}
+//{{{ macro: trace_scope
+/// Automatically manage indentation for a scope and log entry/exit.
+///
+/// This macro creates an RAII guard that increments indentation when entering a scope
+/// and automatically decrements it when leaving. It also logs the entry and exit points.
+///
+/// # Examples
+///
+/// ```ignore
+/// fn my_function() {
+///     trace_scope!("my_function");
+///     // Your code here
+///     // Indentation is automatically decremented when the function returns
+/// }
+/// ```
+#[macro_export]
+macro_rules! trace_scope {
+    ($name:expr) => {{
+        #[cfg(feature = "enable_trace")]
+        {
+            let location = std::panic::Location::caller();
+            let module = module_path!();
+            $crate::topo_log(module, log::Level::Trace, module, location.line(), format_args!("{}", $name));
+            $crate::indent_inc();
+        }
+        $crate::IndentGuard::new()
+    }};
+    ($name:expr, $($arg:tt)+) => {{
+        #[cfg(feature = "enable_trace")]
+        {
+            let location = std::panic::Location::caller();
+            let module = module_path!();
+            $crate::topo_log(module, log::Level::Trace, module, location.line(), format_args!("{}: {}", $name, format_args!($($arg)+)));
+            $crate::indent_inc();
+        }
+        $crate::IndentGuard::new()
+    }};
+}
+//}}}
 //-------------------------------------------------------------------------------------------------
 //{{{ mod: tests
 #[cfg(test)]
@@ -367,6 +487,54 @@ mod tests {
         warn!(target: "test",  "Hello, world! This is a test 2 {}", 5);
         error!("Hello, world! This is a test 1 {}", 5);
         error!(target: "test",  "Hello, world! This is a test 2 {}", 5);
+    }
+
+    #[test]
+    fn test_indentation() {
+        std::env::set_var("TOPO_LOG", "all=5");
+        init().unwrap();
+
+        info!("Starting test");
+        indent_inc();
+        info!("Level 1");
+        indent_inc();
+        info!("Level 2");
+        indent_inc();
+        info!("Level 3");
+        indent_dec();
+        info!("Back to Level 2");
+        indent_dec();
+        info!("Back to Level 1");
+        indent_dec();
+        info!("Back to Level 0");
+    }
+
+    #[test]
+    fn test_trace_scope() {
+        std::env::set_var("TOPO_LOG", "all=5");
+        init().unwrap();
+
+        fn outer_function() {
+            let _guard = trace_scope!("outer_function");
+            info!("Inside outer function");
+            inner_function();
+            info!("Back in outer function");
+        }
+
+        fn inner_function() {
+            let _guard = trace_scope!("inner_function");
+            info!("Inside inner function");
+            deepest_function();
+        }
+
+        fn deepest_function() {
+            let _guard = trace_scope!("deepest_function", "with args");
+            info!("Inside deepest function");
+        }
+
+        info!("Test starting");
+        outer_function();
+        info!("Test complete");
     }
 }
 //}}}
