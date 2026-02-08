@@ -1,0 +1,17 @@
+[package]
+name = "topohedral-tracing-macros"
+version = "0.0.2"
+authors = ["John Ferguson <JAFerguson952@gmail.com>"]
+edition = "2021"
+repository = "https://github.com/TopoHedralLabs/topohedral-tracing"
+license = "MIT"
+description = "Procedural macros for topohedral-tracing. Provides the #[trace_fn] attribute macro."
+publish = ["cloudsmith"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2", features = ["full", "parsing"] }
+quote = "1"
+proc-macro2 = "1"

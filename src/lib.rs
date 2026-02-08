@@ -52,6 +52,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
+pub use topohedral_tracing_macros::trace_fn;
 //}}}
 //{{{ std imports
 use std::collections::HashMap;
@@ -62,6 +63,8 @@ use std::thread;
 //{{{ dep imports
 use colored::Colorize;
 use log::{Level, LevelFilter, Metadata, Record, SetLoggerError, Log};
+#[doc(hidden)]
+pub use log;
 //}}}
 //--------------------------------------------------------------------------------------------------
 //{{{ impl fmt::Display for ThreadId
@@ -292,7 +295,7 @@ macro_rules! trace {
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log($target, log::Level::Trace, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log($target, $crate::log::Level::Trace, module, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -301,7 +304,7 @@ macro_rules! trace {
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log(module, log::Level::Trace, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Trace, module, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -315,7 +318,7 @@ macro_rules! debug{
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log($target, log::Level::Debug, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log($target, $crate::log::Level::Debug, module, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -324,7 +327,7 @@ macro_rules! debug{
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log(module, log::Level::Debug, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Debug, module, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -338,7 +341,7 @@ macro_rules! info{
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log($target, log::Level::Info, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log($target, $crate::log::Level::Info, module, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -347,7 +350,7 @@ macro_rules! info{
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log(module, log::Level::Info, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Info, module, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -361,7 +364,7 @@ macro_rules! warn{
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log($target, log::Level::Warn, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log($target, $crate::log::Level::Warn, module, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -370,7 +373,7 @@ macro_rules! warn{
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log(module, log::Level::Warn, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Warn, module, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -384,7 +387,7 @@ macro_rules! error {
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log($target, log::Level::Error, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log($target, $crate::log::Level::Error, module, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -393,7 +396,7 @@ macro_rules! error {
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            topo_log(module, log::Level::Error, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Error, module, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -409,13 +412,15 @@ pub struct IndentGuard {
 }
 
 impl IndentGuard {
+    #[doc(hidden)]
     #[cfg(feature = "enable_trace")]
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { _marker: () }
     }
 
+    #[doc(hidden)]
     #[cfg(not(feature = "enable_trace"))]
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {}
     }
 }
@@ -449,7 +454,7 @@ macro_rules! trace_scope {
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            $crate::topo_log(module, log::Level::Trace, module, location.line(), format_args!("{}", $name));
+            $crate::topo_log(module, $crate::log::Level::Trace, module, location.line(), format_args!("{}", $name));
             $crate::indent_inc();
         }
         $crate::IndentGuard::new()
@@ -459,82 +464,10 @@ macro_rules! trace_scope {
         {
             let location = std::panic::Location::caller();
             let module = module_path!();
-            $crate::topo_log(module, log::Level::Trace, module, location.line(), format_args!("{}: {}", $name, format_args!($($arg)+)));
+            $crate::topo_log(module, $crate::log::Level::Trace, module, location.line(), format_args!("{}: {}", $name, format_args!($($arg)+)));
             $crate::indent_inc();
         }
         $crate::IndentGuard::new()
     }};
-}
-//}}}
-//-------------------------------------------------------------------------------------------------
-//{{{ mod: tests
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    fn test_topo_log() {
-        std::env::set_var("TOPO_LOG", "all=5");
-        init().unwrap();
-        trace!("Hello, world! This is a test 1 {}", 5);
-        trace!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-        debug!("Hello, world! This is a test 1 {}", 5);
-        debug!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-        info!("Hello, world! This is a test 1 {}", 5);
-        info!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-        warn!("Hello, world! This is a test 1 {}", 5);
-        warn!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-        error!("Hello, world! This is a test 1 {}", 5);
-        error!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-    }
-
-    #[test]
-    fn test_indentation() {
-        std::env::set_var("TOPO_LOG", "all=5");
-        init().unwrap();
-
-        info!("Starting test");
-        indent_inc();
-        info!("Level 1");
-        indent_inc();
-        info!("Level 2");
-        indent_inc();
-        info!("Level 3");
-        indent_dec();
-        info!("Back to Level 2");
-        indent_dec();
-        info!("Back to Level 1");
-        indent_dec();
-        info!("Back to Level 0");
-    }
-
-    #[test]
-    fn test_trace_scope() {
-        std::env::set_var("TOPO_LOG", "all=5");
-        init().unwrap();
-
-        fn outer_function() {
-            let _guard = trace_scope!("outer_function");
-            info!("Inside outer function");
-            inner_function();
-            info!("Back in outer function");
-        }
-
-        fn inner_function() {
-            let _guard = trace_scope!("inner_function");
-            info!("Inside inner function");
-            deepest_function();
-        }
-
-        fn deepest_function() {
-            let _guard = trace_scope!("deepest_function", "with args");
-            info!("Inside deepest function");
-        }
-
-        info!("Test starting");
-        outer_function();
-        info!("Test complete");
-    }
 }
 //}}}

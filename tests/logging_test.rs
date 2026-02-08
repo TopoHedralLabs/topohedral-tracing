@@ -1,0 +1,67 @@
+//! Integration tests for logging macros, indentation, and trace_scope.
+
+use topohedral_tracing::{init, trace, debug, info, warn, error, trace_scope, indent_inc, indent_dec};
+
+#[test]
+fn test_topo_log() {
+    std::env::set_var("TOPO_LOG", "all=5");
+    init().unwrap();
+    trace!("Hello, world! This is a test 1 {}", 5);
+    trace!(target: "test",  "Hello, world! This is a test 2 {}", 5);
+    debug!("Hello, world! This is a test 1 {}", 5);
+    debug!(target: "test",  "Hello, world! This is a test 2 {}", 5);
+    info!("Hello, world! This is a test 1 {}", 5);
+    info!(target: "test",  "Hello, world! This is a test 2 {}", 5);
+    warn!("Hello, world! This is a test 1 {}", 5);
+    warn!(target: "test",  "Hello, world! This is a test 2 {}", 5);
+    error!("Hello, world! This is a test 1 {}", 5);
+    error!(target: "test",  "Hello, world! This is a test 2 {}", 5);
+}
+
+#[test]
+fn test_indentation() {
+    std::env::set_var("TOPO_LOG", "all=5");
+    init().unwrap();
+
+    info!("Starting test");
+    indent_inc();
+    info!("Level 1");
+    indent_inc();
+    info!("Level 2");
+    indent_inc();
+    info!("Level 3");
+    indent_dec();
+    info!("Back to Level 2");
+    indent_dec();
+    info!("Back to Level 1");
+    indent_dec();
+    info!("Back to Level 0");
+}
+
+#[test]
+fn test_trace_scope() {
+    std::env::set_var("TOPO_LOG", "all=5");
+    init().unwrap();
+
+    fn outer_function() {
+        let _guard = trace_scope!("outer_function");
+        info!("Inside outer function");
+        inner_function();
+        info!("Back in outer function");
+    }
+
+    fn inner_function() {
+        let _guard = trace_scope!("inner_function");
+        info!("Inside inner function");
+        deepest_function();
+    }
+
+    fn deepest_function() {
+        let _guard = trace_scope!("deepest_function", "with args");
+        info!("Inside deepest function");
+    }
+
+    info!("Test starting");
+    outer_function();
+    info!("Test complete");
+}
