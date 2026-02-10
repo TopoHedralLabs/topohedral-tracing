@@ -323,16 +323,9 @@ pub fn topo_log(
             Level::Trace => "magenta",
         };
 
-        let start_offset = 40;
+        let start_offset: u32 = 40;
         let file_spec_len = file.len() as u32 + count_digits(line);
-        let num_space = if file_spec_len > start_offset
-        {
-            0
-        }
-        else
-        {
-            start_offset - file_spec_len
-        };
+        let num_space = start_offset.saturating_sub(file_spec_len);
         let space_str = " ".repeat(num_space as usize);
 
         logger.log(
@@ -390,7 +383,7 @@ pub fn indent_dec()
 //}}}
 //{{{ fun: get_filename
 #[doc(hidden)]
-pub fn get_filename<'a>(full_path: &'a str) -> &'a str
+pub fn get_filename(full_path: &str) -> &str
 {
     Path::new(full_path)
         .file_stem()
