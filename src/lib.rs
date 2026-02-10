@@ -52,33 +52,48 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
+pub use topohedral_tracing_macros::trace_fn;
 //}}}
 //{{{ std imports
 use std::collections::HashMap;
 use std::fmt;
+use std::path::Path;
 use std::sync::Mutex;
 use std::thread;
 //}}}
 //{{{ dep imports
 use colored::Colorize;
-use log::{Level, LevelFilter, Metadata, Record, SetLoggerError};
+#[doc(hidden)]
+pub use log;
+use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 //}}}
 //--------------------------------------------------------------------------------------------------
 //{{{ impl fmt::Display for ThreadId
 struct ThreadIdWrapper(thread::ThreadId);
-impl fmt::Display for ThreadIdWrapper {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl fmt::Display for ThreadIdWrapper
+{
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result
+    {
         // Use the Debug implementation to extract the number
         let thread_id_str = format!("{:?}", self.0);
 
         // Extract the number part from "ThreadId(num)"
-        let num_str = if let Some(start) = thread_id_str.find('(') {
-            if let Some(end) = thread_id_str.find(')') {
+        let num_str = if let Some(start) = thread_id_str.find('(')
+        {
+            if let Some(end) = thread_id_str.find(')')
+            {
                 &thread_id_str[start + 1..end]
-            } else {
+            }
+            else
+            {
                 "Unknown"
             }
-        } else {
+        }
+        else
+        {
             "Unknown"
         };
 
@@ -92,32 +107,41 @@ impl fmt::Display for ThreadIdWrapper {
 }
 //}}}
 //{{{ collection: constants
-static LOGGER: Mutex<Option<Box<dyn log::Log>>> = Mutex::new(None);
+static LOGGER: Mutex<Option<TopoHedralLogger>> = Mutex::new(None);
 //}}}
 //{{{ collection TopoHedralLogger
 //{{{ struct TopoHedralLogger
-struct TopoHedralLogger {
+struct TopoHedralLogger
+{
     all: LevelFilter,
     filters: HashMap<String, LevelFilter>,
+    indentation: HashMap<thread::ThreadId, usize>,
 }
 //}}}
 //{{{ impl TopoHedralLogger
-impl TopoHedralLogger {
-    fn new() -> Self {
+impl TopoHedralLogger
+{
+    fn new() -> Self
+    {
         let mut filters = HashMap::<String, LevelFilter>::new();
         let mut all = LevelFilter::Off;
 
-        match std::env::var("TOPO_LOG") {
-            Ok(val) => {
+        match std::env::var("TOPO_LOG")
+        {
+            Ok(val) =>
+            {
                 let targets: Vec<&str> = val.split(",").collect();
-                for key in targets {
+                for key in targets
+                {
                     let target: String;
                     let level: LevelFilter;
-                    if key.contains("=") {
+                    if key.contains("=")
+                    {
                         let peices: Vec<&str> = key.split("=").collect();
                         target = peices[0].to_string();
 
-                        level = match peices[1] {
+                        level = match peices[1]
+                        {
                             "trace" | "5" => LevelFilter::Trace,
                             "debug" | "4" => LevelFilter::Debug,
                             "info" | "3" => LevelFilter::Info,
@@ -125,31 +149,77 @@ impl TopoHedralLogger {
                             "error" | "1" => LevelFilter::Error,
                             _ => LevelFilter::Info,
                         }
-                    } else {
+                    }
+                    else
+                    {
                         target = key.to_string();
                         level = LevelFilter::Info;
                     }
 
-                    if target == "all" {
+                    if target == "all"
+                    {
                         all = level;
-                    } else {
+                    }
+                    else
+                    {
                         filters.insert(target, level);
                     }
                 }
             }
-            Err(std::env::VarError::NotPresent) => {}
-            Err(std::env::VarError::NotUnicode(_)) => {}
+            Err(std::env::VarError::NotPresent) =>
+            {}
+            Err(std::env::VarError::NotUnicode(_)) =>
+            {}
         }
 
-        Self { filters, all }
+        Self {
+            filters,
+            all,
+            indentation: HashMap::new(),
+        }
+    }
+
+    fn get_indent(
+        &mut self,
+        thread_id: thread::ThreadId,
+    ) -> usize
+    {
+        *self.indentation.get(&thread_id).unwrap_or(&0)
+    }
+
+    fn increment_indent(
+        &mut self,
+        thread_id: thread::ThreadId,
+    )
+    {
+        let indent = self.indentation.entry(thread_id).or_insert(0);
+        *indent += 1;
+    }
+
+    fn decrement_indent(
+        &mut self,
+        thread_id: thread::ThreadId,
+    )
+    {
+        let indent = self.indentation.entry(thread_id).or_insert(0);
+        if *indent > 0
+        {
+            *indent -= 1;
+        }
     }
 }
 //}}}
 //{{{ impl log::Log for TopoHedralLogger
-impl log::Log for TopoHedralLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
+impl log::Log for TopoHedralLogger
+{
+    fn enabled(
+        &self,
+        metadata: &Metadata,
+    ) -> bool
+    {
         let target = metadata.target();
-        let mut target_level = match self.filters.get(target) {
+        let mut target_level = match self.filters.get(target)
+        {
             Some(level) => *level,
             None => self.all,
         };
@@ -158,8 +228,13 @@ impl log::Log for TopoHedralLogger {
         metadata.level() <= target_level
     }
 
-    fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
+    fn log(
+        &self,
+        record: &Record,
+    )
+    {
+        if self.enabled(record.metadata())
+        {
             eprintln!("{}", record.args());
         }
     }
@@ -173,12 +248,37 @@ impl log::Log for TopoHedralLogger {
 ///
 /// This must be called before any tracing can occur. Typically this is called from the main
 /// function of the program.
-pub fn init() -> Result<(), SetLoggerError> {
+pub fn init() -> Result<(), SetLoggerError>
+{
     let mut logger_guard = LOGGER.lock().unwrap();
-    *logger_guard = Some(Box::new(TopoHedralLogger::new()));
+    *logger_guard = Some(TopoHedralLogger::new());
     log::set_max_level(LevelFilter::Trace);
     // log::set_boxed_logger(logger_guard.take().unwrap())?;
     Ok(())
+}
+//}}}
+//{{{ fun: count_digits
+/// Returns the number of digits in a u32 number.
+///
+/// # Arguments
+/// - `n` - The number to count digits for.
+///
+/// # Returns
+/// The number of digits in the number (minimum 1 for zero).
+fn count_digits(n: u32) -> u32
+{
+    if n == 0
+    {
+        return 1;
+    }
+    let mut count = 0;
+    let mut num = n;
+    while num > 0
+    {
+        count += 1;
+        num /= 10;
+    }
+    count
 }
 //}}}
 //{{{ fun: topo_log
@@ -199,12 +299,23 @@ pub fn init() -> Result<(), SetLoggerError> {
 /// - module: &str - The module of the log message.
 /// - line: u32 - The line of the log message.
 /// - args: Arguments - The arguments of the log message.
-pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::Arguments) {
+pub fn topo_log(
+    target: &str,
+    level: Level,
+    file: &str,
+    line: u32,
+    args: fmt::Arguments,
+)
+{
     let mut logger_guard = LOGGER.lock().unwrap();
-    if let Some(logger) = &mut *logger_guard {
+    if let Some(logger) = &mut *logger_guard
+    {
         let thread_id = thread::current().id();
+        let indent = logger.get_indent(thread_id);
+        let indent_str = "    ".repeat(indent);
 
-        let log_color = match level {
+        let log_color = match level
+        {
             Level::Error => "red",
             Level::Warn => "yellow",
             Level::Info => "green",
@@ -212,23 +323,72 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::
             Level::Trace => "magenta",
         };
 
+        let start_offset: u32 = 40;
+        let file_spec_len = file.len() as u32 + count_digits(line);
+        let num_space = start_offset.saturating_sub(file_spec_len);
+        let space_str = " ".repeat(num_space as usize);
+
         logger.log(
             &log::Record::builder()
                 .args(format_args!(
-                    "[{:<5} - {:<3} - {}:{}] {}",
+                    "[{:<5}({}) {}:{}]{}{}{}",
                     level.as_str().color(log_color),
                     ThreadIdWrapper(thread_id),
-                    module,
+                    file,
                     line,
+                    space_str,
+                    indent_str,
                     args
                 ))
-                .file(Some(module))
+                .file(Some(file))
                 .line(Some(line))
                 .level(level)
                 .target(target)
                 .build(),
         );
     }
+}
+//}}}
+//{{{ fun: indent_inc
+/// Increment the indentation level for the current thread.
+///
+/// This function is typically called when entering a function to increase the indentation
+/// level for subsequent log messages. Use this in conjunction with `indent_dec()` to
+/// visually track the call-stack depth in log output.
+pub fn indent_inc()
+{
+    let mut logger_guard = LOGGER.lock().unwrap();
+    if let Some(logger) = &mut *logger_guard
+    {
+        let thread_id = thread::current().id();
+        logger.increment_indent(thread_id);
+    }
+}
+//}}}
+//{{{ fun: indent_dec
+/// Decrement the indentation level for the current thread.
+///
+/// This function is typically called when exiting a function to decrease the indentation
+/// level for subsequent log messages. Use this in conjunction with `indent_inc()` to
+/// visually track the call-stack depth in log output.
+pub fn indent_dec()
+{
+    let mut logger_guard = LOGGER.lock().unwrap();
+    if let Some(logger) = &mut *logger_guard
+    {
+        let thread_id = thread::current().id();
+        logger.decrement_indent(thread_id);
+    }
+}
+//}}}
+//{{{ fun: get_filename
+#[doc(hidden)]
+pub fn get_filename(full_path: &str) -> &str
+{
+    Path::new(full_path)
+        .file_stem()
+        .and_then(|os_str| os_str.to_str())
+        .unwrap_or("<unknown>")
 }
 //}}}
 //{{{ macro: trace
@@ -239,8 +399,8 @@ macro_rules! trace {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            topo_log($target, log::Level::Trace, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Trace, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -248,8 +408,9 @@ macro_rules! trace {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            topo_log(module, log::Level::Trace, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Trace, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -262,8 +423,8 @@ macro_rules! debug{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            topo_log($target, log::Level::Debug, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Debug, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -271,8 +432,9 @@ macro_rules! debug{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            topo_log(module, log::Level::Debug, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Debug, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -285,8 +447,8 @@ macro_rules! info{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            topo_log($target, log::Level::Info, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Info, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -294,8 +456,9 @@ macro_rules! info{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            topo_log(module, log::Level::Info, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Info, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -308,8 +471,8 @@ macro_rules! warn{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            topo_log($target, log::Level::Warn, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Warn, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -317,8 +480,9 @@ macro_rules! warn{
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            topo_log(module, log::Level::Warn, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Warn, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
@@ -331,8 +495,8 @@ macro_rules! error {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
-            let module = module_path!();
-            topo_log($target, log::Level::Error, module, location.line(), format_args!($($arg)+));
+            let filename = $crate::get_filename(location.file());
+            $crate::topo_log($target, $crate::log::Level::Error, filename, location.line(), format_args!($($arg)+));
         }
     };
     ($($arg:tt)+) => {
@@ -340,33 +504,75 @@ macro_rules! error {
         #[cfg(feature = "enable_trace")]
         {
             let location = std::panic::Location::caller();
+            let filename = $crate::get_filename(location.file());
             let module = module_path!();
-            topo_log(module, log::Level::Error, module, location.line(), format_args!($($arg)+));
+            $crate::topo_log(module, $crate::log::Level::Error, filename, location.line(), format_args!($($arg)+));
         }
      };
 }
 //}}}
-//-------------------------------------------------------------------------------------------------
-//{{{ mod: tests
-#[cfg(test)]
-mod tests {
+//{{{ struct: IndentGuard
+/// A guard that automatically decrements indentation when dropped.
+///
+/// This struct is used by the `trace_scope!` macro to automatically manage indentation
+/// using RAII. When the guard goes out of scope, the indentation is automatically decremented.
+pub struct IndentGuard
+{
+    #[cfg(feature = "enable_trace")]
+    name: String,
+}
 
-    use super::*;
-
-    #[test]
-    fn test_topo_log() {
-        std::env::set_var("TOPO_LOG", "all=5");
-        init().unwrap();
-        trace!("Hello, world! This is a test 1 {}", 5);
-        trace!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-        debug!("Hello, world! This is a test 1 {}", 5);
-        debug!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-        info!("Hello, world! This is a test 1 {}", 5);
-        info!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-        warn!("Hello, world! This is a test 1 {}", 5);
-        warn!(target: "test",  "Hello, world! This is a test 2 {}", 5);
-        error!("Hello, world! This is a test 1 {}", 5);
-        error!(target: "test",  "Hello, world! This is a test 2 {}", 5);
+impl IndentGuard
+{
+    #[doc(hidden)]
+    #[cfg(feature = "enable_trace")]
+    pub fn new(name: String) -> Self
+    {
+        info!("* Entering {}", name);
+        indent_inc();
+        Self { name }
     }
+
+    #[doc(hidden)]
+    #[cfg(not(feature = "enable_trace"))]
+    pub fn new() -> Self
+    {
+        Self {}
+    }
+}
+
+#[cfg(feature = "enable_trace")]
+impl Drop for IndentGuard
+{
+    fn drop(&mut self)
+    {
+        indent_dec();
+        info!("* Leaving {}", self.name);
+    }
+}
+//}}}
+//{{{ macro: trace_scope
+/// Automatically manage indentation for a scope and log entry/exit.
+///
+/// This macro creates an RAII guard that increments indentation when entering a scope
+/// and automatically decrements it when leaving. It also logs the entry and exit points.
+///
+/// # Examples
+///
+/// ```ignore
+/// fn my_function() {
+///     trace_scope!("my_function");
+///     // Your code here
+///     // Indentation is automatically decremented when the function returns
+/// }
+/// ```
+#[macro_export]
+macro_rules! trace_scope {
+    ($name:expr) => {
+        #[cfg(feature = "enable_trace")]
+        let _trace_guard = $crate::IndentGuard::new(format!("{}", $name));
+        #[cfg(not(feature = "enable_trace"))]
+        let _trace_guard = $crate::IndentGuard::new();
+    };
 }
 //}}}
