@@ -206,6 +206,27 @@ pub fn init() -> Result<(), SetLoggerError> {
     Ok(())
 }
 //}}}
+//{{{ fun: count_digits
+/// Returns the number of digits in a u32 number.
+///
+/// # Arguments
+/// - `n` - The number to count digits for.
+///
+/// # Returns
+/// The number of digits in the number (minimum 1 for zero).
+fn count_digits(n: u32) -> u32 {
+    if n == 0 {
+        return 1;
+    }
+    let mut count = 0;
+    let mut num = n;
+    while num > 0 {
+        count += 1;
+        num /= 10;
+    }
+    count
+}
+//}}}
 //{{{ fun: topo_log
 /// Logs a message with the specified target, level, module, line, and arguments.
 ///
@@ -224,7 +245,7 @@ pub fn init() -> Result<(), SetLoggerError> {
 /// - module: &str - The module of the log message.
 /// - line: u32 - The line of the log message.
 /// - args: Arguments - The arguments of the log message.
-pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::Arguments) {
+pub fn topo_log(target: &str, level: Level, file: &str, line: u32, args: fmt::Arguments) {
     let mut logger_guard = LOGGER.lock().unwrap();
     if let Some(logger) = &mut *logger_guard {
         let thread_id = thread::current().id();
@@ -239,18 +260,24 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::
             Level::Trace => "magenta",
         };
 
+        let start_offset = 40;
+        let file_spec_len = file.len() as u32 + count_digits(line);
+        let num_space = if file_spec_len > start_offset { 0 } else { start_offset - file_spec_len };
+        let space_str = " ".repeat(num_space as usize);
+
         logger.log(
             &log::Record::builder()
                 .args(format_args!(
-                    "[{:<5}({}) {}:{}]\t\t{}{}",
+                    "[{:<5}({}) {}:{}]{}{}{}",
                     level.as_str().color(log_color),
                     ThreadIdWrapper(thread_id),
-                    module,
+                    file,
                     line,
+                    space_str,
                     indent_str,
                     args
                 ))
-                .file(Some(module))
+                .file(Some(file))
                 .line(Some(line))
                 .level(level)
                 .target(target)
