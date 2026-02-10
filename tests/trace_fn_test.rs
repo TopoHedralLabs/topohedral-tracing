@@ -56,7 +56,7 @@ fn test_trace_fn_basic()
 
     let result = simple_function();
     assert_eq!(result, 42);
-    println!("");
+    println!("\n\n");
 }
 
 #[test]
@@ -69,7 +69,7 @@ fn test_trace_fn_custom_name()
 
     let result = function_with_custom_name();
     assert_eq!(result, "hello");
-    println!("");
+    println!("\n\n");
 }
 
 #[test]
@@ -79,6 +79,7 @@ fn test_trace_fn_name_eq()
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
     function_with_name_eq();
+    println!("\n\n");
 }
 
 #[test]
@@ -90,6 +91,7 @@ fn test_trace_fn_with_args()
 
     let result = function_with_args(3, 4);
     assert_eq!(result, 7);
+    println!("\n\n");
 }
 
 #[test]
@@ -99,4 +101,5 @@ fn test_trace_fn_nested()
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
     nested_outer();
+    println!("\n\n");
 }

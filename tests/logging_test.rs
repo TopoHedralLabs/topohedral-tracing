@@ -21,7 +21,7 @@ fn test_topo_log()
     error!("Hello, world! This is a test 1 {}", 5);
     error!(target: "test",  "Hello, world! This is a test 2 {}", 5);
 
-    println!("");
+    println!("\n\n");
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn test_indentation()
     indent_dec();
     info!("Back to Level 0");
 
-    println!("");
+    println!("\n\n");
 }
 
 #[test]
@@ -80,5 +80,5 @@ fn test_trace_scope()
     outer_function();
     info!("Test complete");
 
-    println!("");
+    println!("\n\n");
 }
