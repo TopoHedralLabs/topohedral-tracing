@@ -68,7 +68,7 @@ pub fn trace_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     let output = quote! {
         #(#attrs)*
         #vis #sig {
-            let _trace_guard = ::topohedral_tracing::trace_scope!(#scope_name);
+            ::topohedral_tracing::trace_scope!(#scope_name);
             #(#stmts)*
         }
     };

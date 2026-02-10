@@ -5,7 +5,7 @@ use topohedral_tracing::{init, trace, debug, info, warn, error, trace_scope, ind
 #[test]
 fn test_topo_log() {
 
-    println!("");
+    println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
     trace!("Hello, world! This is a test 1 {}", 5);
@@ -18,12 +18,14 @@ fn test_topo_log() {
     warn!(target: "test",  "Hello, world! This is a test 2 {}", 5);
     error!("Hello, world! This is a test 1 {}", 5);
     error!(target: "test",  "Hello, world! This is a test 2 {}", 5);
+
+    println!("");
 }
 
 #[test]
 fn test_indentation() {
 
-    println!("");
+    println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
 
@@ -40,34 +42,38 @@ fn test_indentation() {
     info!("Back to Level 1");
     indent_dec();
     info!("Back to Level 0");
+
+    println!("");
 }
 
 #[test]
 fn test_trace_scope() {
 
-    println!("");
+    println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
 
     fn outer_function() {
-        let _guard = trace_scope!("outer_function");
+        trace_scope!("outer_function");
         info!("Inside outer function");
         inner_function();
         info!("Back in outer function");
     }
 
     fn inner_function() {
-        let _guard = trace_scope!("inner_function");
+        trace_scope!("inner_function");
         info!("Inside inner function");
         deepest_function();
     }
 
     fn deepest_function() {
-        let _guard = trace_scope!("deepest_function", "with args");
+        trace_scope!("deepest_function");
         info!("Inside deepest function");
     }
 
     info!("Test starting");
     outer_function();
     info!("Test complete");
+
+    println!("");
 }

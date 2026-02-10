@@ -242,7 +242,7 @@ pub fn topo_log(target: &str, level: Level, module: &str, line: u32, args: fmt::
         logger.log(
             &log::Record::builder()
                 .args(format_args!(
-                    "[{:<5}({}) {}:{}] {}{}",
+                    "[{:<5}({}) {}:{}]\t\t{}{}",
                     level.as_str().color(log_color),
                     ThreadIdWrapper(thread_id),
                     module,
@@ -421,19 +421,18 @@ macro_rules! error {
 ///
 /// This struct is used by the `trace_scope!` macro to automatically manage indentation
 /// using RAII. When the guard goes out of scope, the indentation is automatically decremented.
-pub struct IndentGuard<'a> {
+pub struct IndentGuard {
     #[cfg(feature = "enable_trace")]
-    _marker: (),
-    #[cfg(feature = "enable_trace")]
-    name: &'a str,
+    name: String,
 }
 
-impl<'a> IndentGuard<'a> {
+impl IndentGuard {
     #[doc(hidden)]
     #[cfg(feature = "enable_trace")]
-    pub fn new(name: &'a str) -> Self {
+    pub fn new(name: String) -> Self {
+        info!("* Entering {}", name);
         indent_inc();
-        Self { _marker: (), name }
+        Self { name }
     }
 
     #[doc(hidden)]
@@ -444,10 +443,10 @@ impl<'a> IndentGuard<'a> {
 }
 
 #[cfg(feature = "enable_trace")]
-impl<'a> Drop for IndentGuard<'a> {
+impl Drop for IndentGuard {
     fn drop(&mut self) {
         indent_dec();
-        info!("Leaving {}", self.name);
+        info!("* Leaving {}", self.name);
     }
 }
 //}}}
@@ -468,18 +467,11 @@ impl<'a> Drop for IndentGuard<'a> {
 /// ```
 #[macro_export]
 macro_rules! trace_scope {
-    ($name:expr) => {{
+    ($name:expr) => {
         #[cfg(feature = "enable_trace")]
-        let _name = format!("{}", $name);
-        #[cfg(feature = "enable_trace")]
-        $crate::IndentGuard::new(&_name);
-    }};
-    ($name:expr, $($arg:tt)+) => {{
-        #[cfg(feature = "enable_trace")]
-        let _name = format!("{}", $name);
-        // let _name = format!("{}: {}", $name, format_args!($($arg)+));
-        #[cfg(feature = "enable_trace")]
-        $crate::IndentGuard::new(&_name)
-    }};
+        let _trace_guard = $crate::IndentGuard::new(format!("{}", $name));
+        #[cfg(not(feature = "enable_trace"))]
+        let _trace_guard = $crate::IndentGuard::new();
+    };
 }
 //}}}

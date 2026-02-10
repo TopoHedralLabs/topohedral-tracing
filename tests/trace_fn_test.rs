@@ -44,7 +44,7 @@ fn nested_inner() {
 
 #[test]
 fn test_trace_fn_basic() {
-    println!("");
+    println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
 
@@ -55,7 +55,7 @@ fn test_trace_fn_basic() {
 
 #[test]
 fn test_trace_fn_custom_name() {
-    println!("");
+    println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
 
     init().unwrap();
@@ -67,14 +67,15 @@ fn test_trace_fn_custom_name() {
 
 #[test]
 fn test_trace_fn_name_eq() {
+    println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
-
     function_with_name_eq();
 }
 
 #[test]
 fn test_trace_fn_with_args() {
+    println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
 
@@ -84,8 +85,8 @@ fn test_trace_fn_with_args() {
 
 #[test]
 fn test_trace_fn_nested() {
+    println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
-
     nested_outer();
 }
