@@ -3,47 +3,53 @@
 use topohedral_tracing::{init, trace, trace_fn};
 
 #[trace_fn]
-fn simple_function() -> i32 {
+fn simple_function() -> i32
+{
     trace!("print statement 1");
     42
 }
 
 #[trace_fn("custom_name")]
-fn function_with_custom_name() -> &'static str {
+fn function_with_custom_name() -> &'static str
+{
     trace!("print statement 2");
     "hello"
 }
 
 #[trace_fn(name = "named_custom")]
-fn function_with_name_eq() {
-
+fn function_with_name_eq()
+{
     trace!("print statement 3");
     // no-op
 }
 
 #[trace_fn]
-fn function_with_args(x: i32, y: i32) -> i32 {
-
+fn function_with_args(
+    x: i32,
+    y: i32,
+) -> i32
+{
     trace!("print statement 4");
     x + y
 }
 
 #[trace_fn]
-fn nested_outer() {
-
+fn nested_outer()
+{
     trace!("print statement 5");
     nested_inner();
 }
 
 #[trace_fn]
-fn nested_inner() {
-
+fn nested_inner()
+{
     trace!("print statement 6");
     let _ = 1 + 1;
 }
 
 #[test]
-fn test_trace_fn_basic() {
+fn test_trace_fn_basic()
+{
     println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
@@ -54,7 +60,8 @@ fn test_trace_fn_basic() {
 }
 
 #[test]
-fn test_trace_fn_custom_name() {
+fn test_trace_fn_custom_name()
+{
     println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
 
@@ -66,7 +73,8 @@ fn test_trace_fn_custom_name() {
 }
 
 #[test]
-fn test_trace_fn_name_eq() {
+fn test_trace_fn_name_eq()
+{
     println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
@@ -74,7 +82,8 @@ fn test_trace_fn_name_eq() {
 }
 
 #[test]
-fn test_trace_fn_with_args() {
+fn test_trace_fn_with_args()
+{
     println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
@@ -84,7 +93,8 @@ fn test_trace_fn_with_args() {
 }
 
 #[test]
-fn test_trace_fn_nested() {
+fn test_trace_fn_nested()
+{
     println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();

@@ -52,10 +52,15 @@ use syn::{parse_macro_input, ItemFn, LitStr};
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn trace_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn trace_fn(
+    attr: TokenStream,
+    item: TokenStream,
+) -> TokenStream
+{
     let input_fn = parse_macro_input!(item as ItemFn);
 
-    let scope_name = match parse_scope_name(attr, &input_fn) {
+    let scope_name = match parse_scope_name(attr, &input_fn)
+    {
         Ok(name) => name,
         Err(err) => return err.to_compile_error().into(),
     };
@@ -76,21 +81,29 @@ pub fn trace_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     output.into()
 }
 
-fn parse_scope_name(attr: TokenStream, input_fn: &ItemFn) -> syn::Result<String> {
+fn parse_scope_name(
+    attr: TokenStream,
+    input_fn: &ItemFn,
+) -> syn::Result<String>
+{
     let attr2: proc_macro2::TokenStream = attr.clone().into();
 
-    if attr2.is_empty() {
+    if attr2.is_empty()
+    {
         return Ok(input_fn.sig.ident.to_string());
     }
 
     // Try bare string literal: #[trace_fn("custom name")]
-    if let Ok(lit) = syn::parse::<LitStr>(attr.clone()) {
+    if let Ok(lit) = syn::parse::<LitStr>(attr.clone())
+    {
         return Ok(lit.value());
     }
 
     // Try name = "value": #[trace_fn(name = "custom name")]
-    if let Ok(nv) = syn::parse::<syn::MetaNameValue>(attr.clone()) {
-        if nv.path.is_ident("name") {
+    if let Ok(nv) = syn::parse::<syn::MetaNameValue>(attr.clone())
+    {
+        if nv.path.is_ident("name")
+        {
             if let syn::Expr::Lit(syn::ExprLit {
                 lit: syn::Lit::Str(ref s),
                 ..

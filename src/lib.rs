@@ -57,32 +57,43 @@ pub use topohedral_tracing_macros::trace_fn;
 //{{{ std imports
 use std::collections::HashMap;
 use std::fmt;
+use std::path::Path;
 use std::sync::Mutex;
 use std::thread;
-use std::path::Path;
 //}}}
 //{{{ dep imports
 use colored::Colorize;
-use log::{Level, LevelFilter, Metadata, Record, SetLoggerError, Log};
 #[doc(hidden)]
 pub use log;
+use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 //}}}
 //--------------------------------------------------------------------------------------------------
 //{{{ impl fmt::Display for ThreadId
 struct ThreadIdWrapper(thread::ThreadId);
-impl fmt::Display for ThreadIdWrapper {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl fmt::Display for ThreadIdWrapper
+{
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result
+    {
         // Use the Debug implementation to extract the number
         let thread_id_str = format!("{:?}", self.0);
 
         // Extract the number part from "ThreadId(num)"
-        let num_str = if let Some(start) = thread_id_str.find('(') {
-            if let Some(end) = thread_id_str.find(')') {
+        let num_str = if let Some(start) = thread_id_str.find('(')
+        {
+            if let Some(end) = thread_id_str.find(')')
+            {
                 &thread_id_str[start + 1..end]
-            } else {
+            }
+            else
+            {
                 "Unknown"
             }
-        } else {
+        }
+        else
+        {
             "Unknown"
         };
 
@@ -100,29 +111,37 @@ static LOGGER: Mutex<Option<TopoHedralLogger>> = Mutex::new(None);
 //}}}
 //{{{ collection TopoHedralLogger
 //{{{ struct TopoHedralLogger
-struct TopoHedralLogger {
+struct TopoHedralLogger
+{
     all: LevelFilter,
     filters: HashMap<String, LevelFilter>,
     indentation: HashMap<thread::ThreadId, usize>,
 }
 //}}}
 //{{{ impl TopoHedralLogger
-impl TopoHedralLogger {
-    fn new() -> Self {
+impl TopoHedralLogger
+{
+    fn new() -> Self
+    {
         let mut filters = HashMap::<String, LevelFilter>::new();
         let mut all = LevelFilter::Off;
 
-        match std::env::var("TOPO_LOG") {
-            Ok(val) => {
+        match std::env::var("TOPO_LOG")
+        {
+            Ok(val) =>
+            {
                 let targets: Vec<&str> = val.split(",").collect();
-                for key in targets {
+                for key in targets
+                {
                     let target: String;
                     let level: LevelFilter;
-                    if key.contains("=") {
+                    if key.contains("=")
+                    {
                         let peices: Vec<&str> = key.split("=").collect();
                         target = peices[0].to_string();
 
-                        level = match peices[1] {
+                        level = match peices[1]
+                        {
                             "trace" | "5" => LevelFilter::Trace,
                             "debug" | "4" => LevelFilter::Debug,
                             "info" | "3" => LevelFilter::Info,
@@ -130,20 +149,27 @@ impl TopoHedralLogger {
                             "error" | "1" => LevelFilter::Error,
                             _ => LevelFilter::Info,
                         }
-                    } else {
+                    }
+                    else
+                    {
                         target = key.to_string();
                         level = LevelFilter::Info;
                     }
 
-                    if target == "all" {
+                    if target == "all"
+                    {
                         all = level;
-                    } else {
+                    }
+                    else
+                    {
                         filters.insert(target, level);
                     }
                 }
             }
-            Err(std::env::VarError::NotPresent) => {}
-            Err(std::env::VarError::NotUnicode(_)) => {}
+            Err(std::env::VarError::NotPresent) =>
+            {}
+            Err(std::env::VarError::NotUnicode(_)) =>
+            {}
         }
 
         Self {
@@ -153,28 +179,47 @@ impl TopoHedralLogger {
         }
     }
 
-    fn get_indent(&mut self, thread_id: thread::ThreadId) -> usize {
+    fn get_indent(
+        &mut self,
+        thread_id: thread::ThreadId,
+    ) -> usize
+    {
         *self.indentation.get(&thread_id).unwrap_or(&0)
     }
 
-    fn increment_indent(&mut self, thread_id: thread::ThreadId) {
+    fn increment_indent(
+        &mut self,
+        thread_id: thread::ThreadId,
+    )
+    {
         let indent = self.indentation.entry(thread_id).or_insert(0);
         *indent += 1;
     }
 
-    fn decrement_indent(&mut self, thread_id: thread::ThreadId) {
+    fn decrement_indent(
+        &mut self,
+        thread_id: thread::ThreadId,
+    )
+    {
         let indent = self.indentation.entry(thread_id).or_insert(0);
-        if *indent > 0 {
+        if *indent > 0
+        {
             *indent -= 1;
         }
     }
 }
 //}}}
 //{{{ impl log::Log for TopoHedralLogger
-impl log::Log for TopoHedralLogger {
-    fn enabled(&self, metadata: &Metadata) -> bool {
+impl log::Log for TopoHedralLogger
+{
+    fn enabled(
+        &self,
+        metadata: &Metadata,
+    ) -> bool
+    {
         let target = metadata.target();
-        let mut target_level = match self.filters.get(target) {
+        let mut target_level = match self.filters.get(target)
+        {
             Some(level) => *level,
             None => self.all,
         };
@@ -183,8 +228,13 @@ impl log::Log for TopoHedralLogger {
         metadata.level() <= target_level
     }
 
-    fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
+    fn log(
+        &self,
+        record: &Record,
+    )
+    {
+        if self.enabled(record.metadata())
+        {
             eprintln!("{}", record.args());
         }
     }
@@ -198,7 +248,8 @@ impl log::Log for TopoHedralLogger {
 ///
 /// This must be called before any tracing can occur. Typically this is called from the main
 /// function of the program.
-pub fn init() -> Result<(), SetLoggerError> {
+pub fn init() -> Result<(), SetLoggerError>
+{
     let mut logger_guard = LOGGER.lock().unwrap();
     *logger_guard = Some(TopoHedralLogger::new());
     log::set_max_level(LevelFilter::Trace);
@@ -214,13 +265,16 @@ pub fn init() -> Result<(), SetLoggerError> {
 ///
 /// # Returns
 /// The number of digits in the number (minimum 1 for zero).
-fn count_digits(n: u32) -> u32 {
-    if n == 0 {
+fn count_digits(n: u32) -> u32
+{
+    if n == 0
+    {
         return 1;
     }
     let mut count = 0;
     let mut num = n;
-    while num > 0 {
+    while num > 0
+    {
         count += 1;
         num /= 10;
     }
@@ -245,14 +299,23 @@ fn count_digits(n: u32) -> u32 {
 /// - module: &str - The module of the log message.
 /// - line: u32 - The line of the log message.
 /// - args: Arguments - The arguments of the log message.
-pub fn topo_log(target: &str, level: Level, file: &str, line: u32, args: fmt::Arguments) {
+pub fn topo_log(
+    target: &str,
+    level: Level,
+    file: &str,
+    line: u32,
+    args: fmt::Arguments,
+)
+{
     let mut logger_guard = LOGGER.lock().unwrap();
-    if let Some(logger) = &mut *logger_guard {
+    if let Some(logger) = &mut *logger_guard
+    {
         let thread_id = thread::current().id();
         let indent = logger.get_indent(thread_id);
         let indent_str = "    ".repeat(indent);
 
-        let log_color = match level {
+        let log_color = match level
+        {
             Level::Error => "red",
             Level::Warn => "yellow",
             Level::Info => "green",
@@ -262,7 +325,14 @@ pub fn topo_log(target: &str, level: Level, file: &str, line: u32, args: fmt::Ar
 
         let start_offset = 40;
         let file_spec_len = file.len() as u32 + count_digits(line);
-        let num_space = if file_spec_len > start_offset { 0 } else { start_offset - file_spec_len };
+        let num_space = if file_spec_len > start_offset
+        {
+            0
+        }
+        else
+        {
+            start_offset - file_spec_len
+        };
         let space_str = " ".repeat(num_space as usize);
 
         logger.log(
@@ -292,9 +362,11 @@ pub fn topo_log(target: &str, level: Level, file: &str, line: u32, args: fmt::Ar
 /// This function is typically called when entering a function to increase the indentation
 /// level for subsequent log messages. Use this in conjunction with `indent_dec()` to
 /// visually track the call-stack depth in log output.
-pub fn indent_inc() {
+pub fn indent_inc()
+{
     let mut logger_guard = LOGGER.lock().unwrap();
-    if let Some(logger) = &mut *logger_guard {
+    if let Some(logger) = &mut *logger_guard
+    {
         let thread_id = thread::current().id();
         logger.increment_indent(thread_id);
     }
@@ -306,9 +378,11 @@ pub fn indent_inc() {
 /// This function is typically called when exiting a function to decrease the indentation
 /// level for subsequent log messages. Use this in conjunction with `indent_inc()` to
 /// visually track the call-stack depth in log output.
-pub fn indent_dec() {
+pub fn indent_dec()
+{
     let mut logger_guard = LOGGER.lock().unwrap();
-    if let Some(logger) = &mut *logger_guard {
+    if let Some(logger) = &mut *logger_guard
+    {
         let thread_id = thread::current().id();
         logger.decrement_indent(thread_id);
     }
@@ -316,7 +390,8 @@ pub fn indent_dec() {
 //}}}
 //{{{ fun: get_filename
 #[doc(hidden)]
-pub fn get_filename<'a>(full_path: &'a str) -> &'a str {
+pub fn get_filename<'a>(full_path: &'a str) -> &'a str
+{
     Path::new(full_path)
         .file_stem()
         .and_then(|os_str| os_str.to_str())
@@ -448,15 +523,18 @@ macro_rules! error {
 ///
 /// This struct is used by the `trace_scope!` macro to automatically manage indentation
 /// using RAII. When the guard goes out of scope, the indentation is automatically decremented.
-pub struct IndentGuard {
+pub struct IndentGuard
+{
     #[cfg(feature = "enable_trace")]
     name: String,
 }
 
-impl IndentGuard {
+impl IndentGuard
+{
     #[doc(hidden)]
     #[cfg(feature = "enable_trace")]
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String) -> Self
+    {
         info!("* Entering {}", name);
         indent_inc();
         Self { name }
@@ -464,14 +542,17 @@ impl IndentGuard {
 
     #[doc(hidden)]
     #[cfg(not(feature = "enable_trace"))]
-    pub fn new() -> Self {
+    pub fn new() -> Self
+    {
         Self {}
     }
 }
 
 #[cfg(feature = "enable_trace")]
-impl Drop for IndentGuard {
-    fn drop(&mut self) {
+impl Drop for IndentGuard
+{
+    fn drop(&mut self)
+    {
         indent_dec();
         info!("* Leaving {}", self.name);
     }

@@ -1,10 +1,12 @@
 //! Integration tests for logging macros, indentation, and trace_scope.
 
-use topohedral_tracing::{init, trace, debug, info, warn, error, trace_scope, indent_inc, indent_dec};
+use topohedral_tracing::{
+    debug, error, indent_dec, indent_inc, info, init, trace, trace_scope, warn,
+};
 
 #[test]
-fn test_topo_log() {
-
+fn test_topo_log()
+{
     println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
@@ -23,8 +25,8 @@ fn test_topo_log() {
 }
 
 #[test]
-fn test_indentation() {
-
+fn test_indentation()
+{
     println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
@@ -47,26 +49,29 @@ fn test_indentation() {
 }
 
 #[test]
-fn test_trace_scope() {
-
+fn test_trace_scope()
+{
     println!("\n\n");
     std::env::set_var("TOPO_LOG", "all=5");
     init().unwrap();
 
-    fn outer_function() {
+    fn outer_function()
+    {
         trace_scope!("outer_function");
         info!("Inside outer function");
         inner_function();
         info!("Back in outer function");
     }
 
-    fn inner_function() {
+    fn inner_function()
+    {
         trace_scope!("inner_function");
         info!("Inside inner function");
         deepest_function();
     }
 
-    fn deepest_function() {
+    fn deepest_function()
+    {
         trace_scope!("deepest_function");
         info!("Inside deepest function");
     }
