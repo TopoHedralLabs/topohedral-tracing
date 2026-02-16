@@ -16,7 +16,7 @@ members = [".", "topohedral-tracing-macros"]
 [dependencies]
 colored = "3.0.0"
 log = {version = "0.4.29", features = ["std"]}
-topohedral-tracing-macros = { version = "0.0.0", path = "topohedral-tracing-macros" }
+topohedral-tracing-macros = { version = "0.0.0", registry = "cloudsmith"}
 
 [features]
 enable_trace = []
