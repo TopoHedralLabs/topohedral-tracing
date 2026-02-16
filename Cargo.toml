@@ -8,6 +8,7 @@ readme = "README.md"
 license = "MIT"
 description = "A library for tracing the execution of Rust programs. Provides both a compile-time switch and a runtime switch for tracing."
 publish = ["cloudsmith"]
+exclude = ["topohedral-tracing-macros/**"]
 
 [workspace]
 members = [".", "topohedral-tracing-macros"]
@@ -15,8 +16,7 @@ members = [".", "topohedral-tracing-macros"]
 [dependencies]
 colored = "3.0.0"
 log = {version = "0.4.29", features = ["std"]}
-topohedral-tracing-macros = { version = "0.0.2", path = "topohedral-tracing-macros" }
+topohedral-tracing-macros = { version = "0.0.0", path = "topohedral-tracing-macros" }
 
 [features]
 enable_trace = []
-
