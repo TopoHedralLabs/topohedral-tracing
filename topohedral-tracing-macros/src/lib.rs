@@ -16,7 +16,7 @@
 //! ```
 
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{quote, quote_spanned};
 use syn::{parse_macro_input, ItemFn, LitStr};
 
 /// Instruments a function with automatic trace-scope logging.
@@ -69,11 +69,14 @@ pub fn trace_fn(
     let vis = &input_fn.vis;
     let sig = &input_fn.sig;
     let stmts = &input_fn.block.stmts;
+    let trace_scope_stmt = quote_spanned! { sig.ident.span()=>
+        ::topohedral_tracing::trace_scope!(#scope_name);
+    };
 
     let output = quote! {
         #(#attrs)*
         #vis #sig {
-            ::topohedral_tracing::trace_scope!(#scope_name);
+            #trace_scope_stmt
             #(#stmts)*
         }
     };
