@@ -1,6 +1,6 @@
 [package]
 name = "topohedral-tracing"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["John Ferguson <JAFerguson952@gmail.com>"]
 edition = "2021"
 repository = "https://github.com/TopoHedralLabs/topohedral-tracing"
