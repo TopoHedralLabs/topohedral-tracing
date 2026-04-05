@@ -520,17 +520,49 @@ pub struct IndentGuard
 {
     #[cfg(feature = "enable_trace")]
     name: String,
+    #[cfg(feature = "enable_trace")]
+    target: &'static str,
+    #[cfg(feature = "enable_trace")]
+    file: &'static str,
+    #[cfg(feature = "enable_trace")]
+    line: u32,
 }
 
 impl IndentGuard
 {
     #[doc(hidden)]
     #[cfg(feature = "enable_trace")]
+    #[track_caller]
     pub fn new(name: String) -> Self
     {
-        info!("* Entering {}", name);
+        let location = std::panic::Location::caller();
+        let file = get_filename(location.file());
+        Self::new_with_caller(name, module_path!(), file, location.line())
+    }
+
+    #[doc(hidden)]
+    #[cfg(feature = "enable_trace")]
+    pub fn new_with_caller(
+        name: String,
+        target: &'static str,
+        file: &'static str,
+        line: u32,
+    ) -> Self
+    {
+        topo_log(
+            target,
+            log::Level::Info,
+            file,
+            line,
+            format_args!("* Entering {}", name),
+        );
         indent_inc();
-        Self { name }
+        Self {
+            name,
+            target,
+            file,
+            line,
+        }
     }
 
     #[doc(hidden)]
@@ -547,7 +579,13 @@ impl Drop for IndentGuard
     fn drop(&mut self)
     {
         indent_dec();
-        info!("* Leaving {}", self.name);
+        topo_log(
+            self.target,
+            log::Level::Info,
+            self.file,
+            self.line,
+            format_args!("* Leaving {}", self.name),
+        );
     }
 }
 //}}}
@@ -570,7 +608,17 @@ impl Drop for IndentGuard
 macro_rules! trace_scope {
     ($name:expr) => {
         #[cfg(feature = "enable_trace")]
-        let _trace_guard = $crate::IndentGuard::new(format!("{}", $name));
+        let _trace_guard = {
+            let location = std::panic::Location::caller();
+            let file = $crate::get_filename(location.file());
+            let target = module_path!();
+            $crate::IndentGuard::new_with_caller(
+                format!("{}", $name),
+                target,
+                file,
+                location.line(),
+            )
+        };
         #[cfg(not(feature = "enable_trace"))]
         let _trace_guard = $crate::IndentGuard::new();
     };
