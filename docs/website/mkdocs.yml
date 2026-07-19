@@ -1,0 +1,35 @@
+site_name: TopoHedral Tracing Documentation
+site_description: Compile-time gated logging and scope tracing for TopoHedral Rust crates
+site_url: https://topohedrallabs.github.io/topohedral-tracing/
+repo_url: https://github.com/TopoHedralLabs/topohedral-tracing
+repo_name: TopoHedralLabs/topohedral-tracing
+theme:
+  name: material
+  features:
+    - navigation.indexes
+    - navigation.sections
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+
+extra:
+  version:
+    provider: mike
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide:
+      - Overview: user-guide/index.md
+      - Runtime Configuration: user-guide/configuration.md
+      - Logging Messages: user-guide/logging.md
+      - Scope Tracing: user-guide/scope-tracing.md
+      - Troubleshooting: user-guide/troubleshooting.md
+  - Developers:
+      - Overview: developers/index.md
+      - Building Docs: developers/building-docs.md
