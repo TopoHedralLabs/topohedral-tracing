@@ -1,22 +1,32 @@
 [package]
 name = "topohedral-tracing"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["John Ferguson <JAFerguson952@gmail.com>"]
 edition = "2021"
+rust-version = "1.70"
 repository = "https://github.com/TopoHedralLabs/topohedral-tracing"
+homepage = "https://github.com/TopoHedralLabs/topohedral-tracing"
+documentation = "https://docs.rs/topohedral-tracing"
 readme = "README.md"
 license = "MIT"
 description = "A library for tracing the execution of Rust programs. Provides both a compile-time switch and a runtime switch for tracing."
+keywords = ["logging", "log", "tracing", "instrumentation", "debugging"]
+categories = ["development-tools::debugging", "development-tools::profiling"]
 publish = ["cloudsmith"]
-exclude = ["topohedral-tracing-macros/**"]
 
 [workspace]
 members = [".", "topohedral-tracing-macros"]
 
 [dependencies]
 colored = "3.0.0"
-log = {version = "0.4.29", features = ["std"]}
-topohedral-tracing-macros = { version = "0.0.0", registry = "cloudsmith"}
+log = { version = "0.4.29", features = ["std"] }
+topohedral-tracing-macros = { version = "0.2.0", path = "topohedral-tracing-macros", registry = "cloudsmith" }
 
 [features]
-enable_trace = []
+default = []
+# Compiles the bodies of the logging macros. Without it every trace point is
+# erased at compile time.
+trace = []
+# Deprecated alias for `trace`, kept for one release to ease the 0.1 -> 0.2
+# migration. Prefer `trace`; this will be removed in 0.3.
+enable_trace = ["trace"]

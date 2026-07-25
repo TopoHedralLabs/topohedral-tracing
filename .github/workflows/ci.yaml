@@ -2,46 +2,116 @@ name: CI
 
 on: [push, pull_request]
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
+  # The compile-time switch means there are two distinct builds of this crate, and the one
+  # without the feature is what every consumer gets by default. Both must be linted, built and
+  # tested; before 0.2.0 CI only ever ran `--all-features` and the default build was never
+  # compiled at all.
   build-and-test:
+    name: build & test (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: tracing off
+            features: ""
+          - name: tracing on
+            features: "--features trace"
     env:
       CARGO_REGISTRIES_CLOUDSMITH_TOKEN: ${{ secrets.CLOUDSMITH_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
           components: rustfmt, clippy
 
-      - name: Cache Cargo registry
-        uses: actions/cache@v3
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: Cache Cargo build
-        uses: actions/cache@v3
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-
+          key: ${{ matrix.name }}
 
       - name: Install Dependencies
         run: cargo fetch
 
       - name: Check Formatting
-        run: cargo fmt --verbose -- --check
+        run: cargo fmt --all --verbose -- --check
 
       - name: Run Linter
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
 
       - name: Build Project
-        run: cargo build --all-targets --all-features
+        run: cargo build --all-targets ${{ matrix.features }}
 
       - name: Run Tests
-        run: cargo test --all-targets --all-features
+        run: cargo test ${{ matrix.features }}
+
+  # `#[doc(hidden)]` items aside, the crate denies `missing_docs`; this also runs the doctests,
+  # which are the only compiled check that the documented usage still type-checks.
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRIES_CLOUDSMITH_TOKEN: ${{ secrets.CLOUDSMITH_API_KEY }}
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo doc --no-deps --features trace
+      - run: cargo test --doc --features trace
+
+  # The regression test for the compile-time switch. `tests/consumer-fixture` is a separate
+  # package that declares no tracing feature of its own, which is the shape of consumer that the
+  # pre-0.2.0 `#[cfg(feature = ..)]`-inside-the-macro design broke. It must build warning-free
+  # with the feature off, and actually emit records when the feature is enabled on the
+  # dependency — neither of which any test inside this workspace can check, because a workspace
+  # member sees the workspace's own features.
+  consumer:
+    name: downstream consumer
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/consumer-fixture
+    env:
+      CARGO_REGISTRIES_CLOUDSMITH_TOKEN: ${{ secrets.CLOUDSMITH_API_KEY }}
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tests/consumer-fixture
+
+      # Built and run as separate steps: `cargo run` writes its own progress to stderr, which
+      # would swamp the assertions below.
+      - name: Build with tracing off (must be warning-free)
+        run: cargo build
+
+      - name: Run with tracing off
+        run: |
+          set -euo pipefail
+          TOPO_LOG=all=trace ./target/debug/consumer-fixture 2> stderr.txt
+          cat stderr.txt
+          # This crate's own trace points are erased ...
+          if grep -q '\* Entering' stderr.txt; then
+            echo "trace points should be compiled out without the feature" >&2
+            exit 1
+          fi
+          # ... but the installed `log` backend still serves the facade, so a dependency's
+          # warnings and errors survive into non-tracing builds.
+          grep -q 'emitted via the log facade' stderr.txt
+
+      - name: Build with tracing on (must be warning-free)
+        run: cargo build --features topohedral-tracing/trace
+
+      - name: Run with tracing on
+        run: |
+          set -euo pipefail
+          TOPO_LOG=all=trace ./target/debug/consumer-fixture 2> stderr.txt
+          cat stderr.txt
+          grep -q '\* Entering traced_function' stderr.txt
+          grep -q 'emitted via the log facade' stderr.txt
