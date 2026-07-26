@@ -37,30 +37,45 @@ topohedral_tracing::debug!(target: "solver", "residual = {residual:.3e}");
 These messages can be selected independently:
 
 ```console
-TOPO_LOG=mesh=info,solver=debug cargo run --features enable_trace
+TOPO_LOG=mesh=info,solver=debug cargo run --features trace
 ```
 
 Targets affect filtering but are not printed in the formatted output.
 
+## Records from dependencies
+
+The crate installs itself as the global `log` backend, so a dependency that
+knows nothing about it still has its records formatted and indented the same
+way:
+
+```rust
+log::info!("emitted by a dependency");
+```
+
+Such records carry that dependency's module path as their target and are
+filtered by the same `TOPO_LOG` rules.
+
 ## Output format
 
-Messages are written to standard error. Each line contains:
+Messages are written to standard error by default; `Builder` can direct them to
+standard output or to any `Write` sink. Each line contains:
 
 ```text
 [LEVEL(thread) file:line]          indentation message
 ```
 
-- `LEVEL` is colored by severity when terminal coloring is active;
+- `LEVEL` is colored by severity when coloring is active;
 - `thread` identifies the current operating-system thread;
-- `file` is the source file name without its directory or extension;
+- `file` is the source file name, with its parent directory for `mod.rs`,
+  `lib.rs` and `main.rs` where the name alone would be ambiguous;
 - `line` is the macro call's source line; and
 - four spaces are added for each active indentation level.
 
-Set `NO_COLOR=1` when plain output is preferable, for example in a snapshot or
-CI log:
+Color is used only when the output stream is a terminal, so redirected output is
+already plain. Set `NO_COLOR=1` to force it off, for example in a snapshot test:
 
 ```console
-NO_COLOR=1 TOPO_LOG=all=debug cargo run --features enable_trace
+NO_COLOR=1 TOPO_LOG=all=debug cargo run --features trace
 ```
 
 ## Formatting values
@@ -77,10 +92,10 @@ topohedral_tracing::debug!(
 );
 ```
 
-With `enable_trace` disabled, logging arguments are compiled out and are not
-evaluated. With the feature enabled, arguments may be evaluated even if the
-runtime filter rejects the message, so avoid expensive diagnostic computation
-unless it is acceptable in a tracing build.
+With `trace` disabled, logging arguments are type-checked but never evaluated —
+the whole call is a dead branch. With the feature enabled, arguments may be
+evaluated even if the runtime filter rejects the message, so avoid expensive
+diagnostic computation unless it is acceptable in a tracing build.
 
 ## Using logs in tests
 
@@ -88,5 +103,9 @@ Rust's test harness captures output by default. Include the feature, set a
 filter, and pass `--nocapture` when inspecting trace output:
 
 ```console
-TOPO_LOG=all=trace cargo test --features enable_trace -- --nocapture
+TOPO_LOG=all=trace cargo test --features trace -- --nocapture
 ```
+
+Filters are fixed when `init()` runs, and a process has one global logger, so
+tests that each need different filters must run in separate processes. See
+[Troubleshooting](troubleshooting.md#test-output-is-hidden).

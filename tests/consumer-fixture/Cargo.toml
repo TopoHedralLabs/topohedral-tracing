@@ -1,0 +1,22 @@
+# A downstream consumer of `topohedral-tracing`, used as a regression test.
+#
+# The point of this crate is what it *does not* contain: it declares no `trace` or `enable_trace`
+# feature of its own and forwards nothing. Before 0.2.0 the logging macros expanded to
+# `#[cfg(feature = "enable_trace")]`, which Cargo resolves against the *calling* crate, so a
+# consumer shaped like this one got `unexpected_cfgs` warnings and silence at best, and a compile
+# error at worst. Building and running this crate is the only configuration that catches that.
+#
+# It is its own workspace (note the empty `[workspace]` table) so that the parent workspace does
+# not absorb it and give it the parent's feature set.
+
+[package]
+name = "consumer-fixture"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+topohedral-tracing = { path = "../.." }
+log = "0.4"

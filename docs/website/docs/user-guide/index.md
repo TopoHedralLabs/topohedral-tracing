@@ -1,10 +1,14 @@
 # User Guide
 
-A message is printed only when all three parts of tracing are active:
+A message from this crate's macros is printed only when all three parts of
+tracing are active:
 
-1. the calling crate is compiled with `enable_trace`;
+1. `topohedral-tracing` is compiled with its `trace` feature;
 2. `topohedral_tracing::init()` has run; and
 3. `TOPO_LOG` enables the message's target and level.
+
+Records emitted by a dependency through the `log` crate need only the last two:
+`init()` installs a global `log` backend in every build.
 
 This separation lets library authors add extensive diagnostics while leaving
 the final decision to the application and its operator.
@@ -40,4 +44,5 @@ fn main() {
 ```
 
 For broad diagnosis, run with `TOPO_LOG=all=trace`. Once the relevant area is
-known, switch to an exact module or custom target to reduce noise.
+known, lower `all` and name the module or custom target of interest to reduce
+noise, for example `TOPO_LOG=all=warn,my_app::solver=trace`.

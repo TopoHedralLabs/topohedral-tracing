@@ -3,3 +3,10 @@ archive/
 activate.zsh
 release-note.md
 Cargo.lock
+
+# macOS finder metadata
+.DS_Store
+
+# mkdocs build output and its virtualenv; see docs/website/docs/developers/building-docs.md
+docs/website/site/
+docs/website/venv/

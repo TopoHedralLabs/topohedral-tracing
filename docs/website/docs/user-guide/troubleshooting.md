@@ -4,17 +4,21 @@
 
 Check the three required gates in order:
 
-1. **Compile-time feature:** run with `--features enable_trace` and confirm the
-   calling crate declares and forwards that feature.
+1. **Compile-time feature:** run with `--features trace`, or confirm that
+   something in the dependency graph enables `topohedral-tracing/trace`. Print
+   `topohedral_tracing::ENABLED` if in doubt.
 2. **Initialization:** call `topohedral_tracing::init()` before the first
-   logging or scope-tracing call.
+   logging or scope-tracing call, and check its result — if another `log`
+   backend was installed first, it returns
+   `Err(TraceInitError::AlreadyInitialized)` and nothing this crate emits will
+   be formatted.
 3. **Runtime filter:** set `TOPO_LOG` before initialization and choose a level
    that includes the message.
 
 This command is a useful broad test:
 
 ```console
-TOPO_LOG=all=trace cargo run --features enable_trace
+TOPO_LOG=all=trace cargo run --features trace
 ```
 
 ## Some levels are missing
@@ -25,38 +29,41 @@ include every level.
 
 ## A module filter does not match
 
-Targets are matched exactly; they are not prefixes. `my_app` does not match
-`my_app::solver`.
+Targets are matched by module-path prefix, so `my_app` selects `my_app::solver`.
+Two things still prevent a match:
 
-Use the complete module path:
+- **Boundaries are respected.** `my_app` does not select `my_apple`; only whole
+  path segments count.
+- **A more specific filter wins.** In `TOPO_LOG=my_app=trace,my_app::solver=off`
+  the solver is silent, because the longest matching filter takes precedence.
 
-```console
-TOPO_LOG=my_app::solver=debug cargo run --features enable_trace
-```
+Check the target a message actually carries: without an explicit `target:` it is
+the full `module_path!()` of the call site, which for a message in `src/main.rs`
+of a binary is the crate name.
 
-Alternatively, give the message a custom target and filter that name:
+## A target is noisier or quieter than expected
 
-```rust
-topohedral_tracing::debug!(target: "solver", "trying candidate");
-```
-
-```console
-TOPO_LOG=solver=debug cargo run --features enable_trace
-```
-
-Do not add spaces around commas or equals signs in `TOPO_LOG`.
-
-## A target is noisier than requested
-
-The `all` filter is a baseline. In this configuration:
+`all` is the level used when no other filter matches, and the longest matching
+filter wins. So in:
 
 ```console
 TOPO_LOG=all=debug,my_app::solver=error
 ```
 
-`my_app::solver` still emits through `debug`, because an exact target cannot
-narrow the global baseline. Remove or lower `all`, then list the targets that
-should be enabled.
+`my_app::solver` emits only errors, while everything else emits `debug` and
+below. If a target is unexpectedly verbose, look for a broader filter that also
+matches it and add a more specific one.
+
+## A `TOPO_LOG` entry is ignored
+
+Unparseable directives are reported on standard error at startup, for example:
+
+```text
+topohedral-tracing: filter `solver=dbeug` has unknown level `dbeug`; expected one of off/error/warn/info/debug/trace or 0-5
+```
+
+The remaining directives still apply, so a typo silences one target rather than
+all of them. Check for that line before assuming the filter is correct.
 
 ## Function entry and exit records are missing
 
@@ -70,24 +77,29 @@ Also confirm the attributed function is actually called after `init()`.
 The Rust test harness captures standard error. Run:
 
 ```console
-TOPO_LOG=all=trace cargo test --features enable_trace -- --nocapture
+TOPO_LOG=all=trace cargo test --features trace -- --nocapture
 ```
 
-When tests mutate `TOPO_LOG` or reinitialize tracing, avoid running those tests
-concurrently because both the environment variable and logger configuration are
-process-wide.
+Note that filters are frozen when `init()` runs and a process has only one
+global logger, so tests that each need a different `TOPO_LOG` cannot share a
+process. Run each such case in a child process; `tests/common/mod.rs` in this
+repository is a working harness for that pattern.
 
 ## Output contains ANSI colors
 
-Set the standard `NO_COLOR` environment variable:
+Color is enabled only when the output stream is a terminal, so redirected or
+piped output is already plain. To force it off explicitly, set the standard
+`NO_COLOR` environment variable:
 
 ```console
-NO_COLOR=1 TOPO_LOG=all=trace cargo run --features enable_trace
+NO_COLOR=1 TOPO_LOG=all=trace cargo run --features trace
 ```
+
+`Builder::color(false)` does the same programmatically, and
+`Builder::color(true)` forces color on for a non-terminal sink.
 
 ## Changing `TOPO_LOG` has no effect
 
 The variable is parsed by `init()`, not on every message. Set it before process
-startup. If application code changes the variable, it must reinitialize before
-the new filters are observed; initializing once at startup is the recommended
-pattern.
+startup. Since `init()` is one-shot, a program cannot reinitialize to pick up a
+new value; use `Builder::filters` if filters must be chosen programmatically.
