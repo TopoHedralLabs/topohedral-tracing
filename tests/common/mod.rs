@@ -24,8 +24,7 @@ pub const FIXTURE_ENV: &str = "TOPO_FIXTURE";
 ///     // ... real work, output asserted on by the parent test ...
 /// }
 /// ```
-pub fn skip_fixture() -> bool
-{
+pub fn skip_fixture() -> bool {
     std::env::var_os(FIXTURE_ENV).is_none()
 }
 
@@ -36,8 +35,7 @@ pub fn skip_fixture() -> bool
 pub fn run_fixture(
     fixture: &str,
     topo_log: &str,
-) -> String
-{
+) -> String {
     let output = Command::new(std::env::current_exe().expect("test binary path"))
         .arg("--exact")
         .arg(fixture)
@@ -60,8 +58,7 @@ pub fn run_fixture(
 
 /// One parsed log line.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LogLine
-{
+pub struct LogLine {
     pub level: String,
     pub thread: String,
     pub file: String,
@@ -81,13 +78,11 @@ const INDENT_WIDTH: usize = 4;
 ///
 /// Parsing rather than substring-matching means the assertions also cover the layout itself: a
 /// line whose padding or indentation is wrong fails to yield the expected `indent`.
-pub fn parse_lines(stderr: &str) -> Vec<LogLine>
-{
+pub fn parse_lines(stderr: &str) -> Vec<LogLine> {
     stderr.lines().filter_map(parse_line).collect()
 }
 
-fn parse_line(line: &str) -> Option<LogLine>
-{
+fn parse_line(line: &str) -> Option<LogLine> {
     let rest = line.strip_prefix('[')?;
     let close = rest.find(']')?;
     let (prefix, body) = rest.split_at(close);
@@ -121,8 +116,7 @@ fn parse_line(line: &str) -> Option<LogLine>
 pub fn line_with<'a>(
     lines: &'a [LogLine],
     message: &str,
-) -> &'a LogLine
-{
+) -> &'a LogLine {
     let matches: Vec<&LogLine> = lines.iter().filter(|l| l.message == message).collect();
     assert_eq!(
         matches.len(),
@@ -134,7 +128,6 @@ pub fn line_with<'a>(
 }
 
 /// All messages, in order.
-pub fn messages(lines: &[LogLine]) -> Vec<&str>
-{
+pub fn messages(lines: &[LogLine]) -> Vec<&str> {
     lines.iter().map(|l| l.message.as_str()).collect()
 }

@@ -12,15 +12,13 @@ use topohedral_tracing::{info, init, trace_fn};
 //{{{ traced functions
 
 #[trace_fn]
-fn simple_function() -> i32
-{
+fn simple_function() -> i32 {
     info!("body of simple_function");
     42
 }
 
 #[trace_fn("custom_name")]
-fn function_with_custom_name() -> &'static str
-{
+fn function_with_custom_name() -> &'static str {
     "hello"
 }
 
@@ -31,14 +29,12 @@ fn function_with_name_eq() {}
 fn function_with_args(
     x: i32,
     y: i32,
-) -> i32
-{
+) -> i32 {
     x + y
 }
 
 #[trace_fn]
-fn generic_function<T: std::fmt::Debug>(value: T) -> String
-{
+fn generic_function<T: std::fmt::Debug>(value: T) -> String {
     format!("{value:?}")
 }
 
@@ -46,16 +42,13 @@ fn generic_function<T: std::fmt::Debug>(value: T) -> String
 fn nested_inner() {}
 
 #[trace_fn]
-fn nested_outer()
-{
+fn nested_outer() {
     nested_inner();
 }
 
 #[trace_fn]
-fn returns_early(flag: bool) -> i32
-{
-    if flag
-    {
+fn returns_early(flag: bool) -> i32 {
+    if flag {
         return 1;
     }
     2
@@ -65,10 +58,8 @@ fn returns_early(flag: bool) -> i32
 //{{{ fixtures
 
 #[test]
-fn fixture_traced_functions()
-{
-    if common::skip_fixture()
-    {
+fn fixture_traced_functions() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
@@ -86,8 +77,7 @@ fn fixture_traced_functions()
 //{{{ tests
 
 #[test]
-fn the_function_name_is_the_default_scope_name()
-{
+fn the_function_name_is_the_default_scope_name() {
     let lines = parse_lines(&run_fixture("fixture_traced_functions", "all=info"));
 
     assert_eq!(line_with(&lines, "* Entering simple_function").indent, 0);
@@ -96,8 +86,7 @@ fn the_function_name_is_the_default_scope_name()
 }
 
 #[test]
-fn both_custom_name_syntaxes_are_honoured()
-{
+fn both_custom_name_syntaxes_are_honoured() {
     let lines = parse_lines(&run_fixture("fixture_traced_functions", "all=info"));
     let all = messages(&lines);
 
@@ -111,8 +100,7 @@ fn both_custom_name_syntaxes_are_honoured()
 }
 
 #[test]
-fn functions_with_arguments_and_generics_are_instrumented()
-{
+fn functions_with_arguments_and_generics_are_instrumented() {
     let lines = parse_lines(&run_fixture("fixture_traced_functions", "all=info"));
     let all = messages(&lines);
 
@@ -121,8 +109,7 @@ fn functions_with_arguments_and_generics_are_instrumented()
 }
 
 #[test]
-fn an_early_return_still_logs_the_exit()
-{
+fn an_early_return_still_logs_the_exit() {
     let lines = parse_lines(&run_fixture("fixture_traced_functions", "all=info"));
     let all = messages(&lines);
 
@@ -135,8 +122,7 @@ fn an_early_return_still_logs_the_exit()
 }
 
 #[test]
-fn nested_traced_functions_indent()
-{
+fn nested_traced_functions_indent() {
     let lines = parse_lines(&run_fixture("fixture_traced_functions", "all=info"));
 
     assert_eq!(line_with(&lines, "* Entering nested_outer").indent, 0);
@@ -146,8 +132,7 @@ fn nested_traced_functions_indent()
 }
 
 #[test]
-fn records_are_attributed_to_the_traced_function_not_the_macro()
-{
+fn records_are_attributed_to_the_traced_function_not_the_macro() {
     let lines = parse_lines(&run_fixture("fixture_traced_functions", "all=info"));
 
     assert!(

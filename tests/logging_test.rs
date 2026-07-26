@@ -17,10 +17,8 @@ use topohedral_tracing::{
 //{{{ fixtures
 
 #[test]
-fn fixture_all_levels()
-{
-    if common::skip_fixture()
-    {
+fn fixture_all_levels() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
@@ -36,10 +34,8 @@ fn fixture_all_levels()
 }
 
 #[test]
-fn fixture_manual_indentation()
-{
-    if common::skip_fixture()
-    {
+fn fixture_manual_indentation() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
@@ -56,22 +52,18 @@ fn fixture_manual_indentation()
 }
 
 #[test]
-fn fixture_trace_scope_nesting()
-{
-    if common::skip_fixture()
-    {
+fn fixture_trace_scope_nesting() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
 
-    fn inner()
-    {
+    fn inner() {
         trace_scope!("inner");
         info!("in inner");
     }
 
-    fn outer()
-    {
+    fn outer() {
         trace_scope!("outer");
         info!("in outer");
         inner();
@@ -84,16 +76,13 @@ fn fixture_trace_scope_nesting()
 }
 
 #[test]
-fn fixture_scope_unwinds_on_early_return()
-{
-    if common::skip_fixture()
-    {
+fn fixture_scope_unwinds_on_early_return() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
 
-    fn bails() -> Option<()>
-    {
+    fn bails() -> Option<()> {
         trace_scope!("bails");
         info!("about to bail");
         None?;
@@ -106,10 +95,8 @@ fn fixture_scope_unwinds_on_early_return()
 }
 
 #[test]
-fn fixture_indentation_is_per_thread()
-{
-    if common::skip_fixture()
-    {
+fn fixture_indentation_is_per_thread() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
@@ -126,10 +113,8 @@ fn fixture_indentation_is_per_thread()
 }
 
 #[test]
-fn fixture_dependency_log_macros()
-{
-    if common::skip_fixture()
-    {
+fn fixture_dependency_log_macros() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
@@ -144,8 +129,7 @@ fn fixture_dependency_log_macros()
 //{{{ tests
 
 #[test]
-fn every_level_is_emitted_and_labelled()
-{
+fn every_level_is_emitted_and_labelled() {
     let lines = parse_lines(&run_fixture("fixture_all_levels", "all=trace"));
 
     assert_eq!(line_with(&lines, "level trace").level, "TRACE");
@@ -156,8 +140,7 @@ fn every_level_is_emitted_and_labelled()
 }
 
 #[test]
-fn lines_carry_the_call_site_not_the_library()
-{
+fn lines_carry_the_call_site_not_the_library() {
     let lines = parse_lines(&run_fixture("fixture_all_levels", "all=trace"));
     let line = line_with(&lines, "level info");
 
@@ -170,16 +153,14 @@ fn lines_carry_the_call_site_not_the_library()
 }
 
 #[test]
-fn a_level_filter_hides_more_verbose_levels()
-{
+fn a_level_filter_hides_more_verbose_levels() {
     let lines = parse_lines(&run_fixture("fixture_all_levels", "all=warn"));
 
     assert_eq!(messages(&lines), vec!["level warn", "level error"]);
 }
 
 #[test]
-fn explicit_targets_are_filtered_independently()
-{
+fn explicit_targets_are_filtered_independently() {
     let stderr = run_fixture("fixture_all_levels", "all=off,custom=info");
     let lines = parse_lines(&stderr);
 
@@ -191,8 +172,7 @@ fn explicit_targets_are_filtered_independently()
 }
 
 #[test]
-fn manual_indentation_nests_and_unwinds()
-{
+fn manual_indentation_nests_and_unwinds() {
     let lines = parse_lines(&run_fixture("fixture_manual_indentation", "all=info"));
 
     assert_eq!(line_with(&lines, "depth 0").indent, 0);
@@ -203,8 +183,7 @@ fn manual_indentation_nests_and_unwinds()
 }
 
 #[test]
-fn trace_scope_brackets_and_indents_the_scope()
-{
+fn trace_scope_brackets_and_indents_the_scope() {
     let lines = parse_lines(&run_fixture("fixture_trace_scope_nesting", "all=info"));
 
     assert_eq!(
@@ -233,8 +212,7 @@ fn trace_scope_brackets_and_indents_the_scope()
 }
 
 #[test]
-fn scope_exit_is_logged_on_early_return()
-{
+fn scope_exit_is_logged_on_early_return() {
     let lines = parse_lines(&run_fixture(
         "fixture_scope_unwinds_on_early_return",
         "all=info",
@@ -254,8 +232,7 @@ fn scope_exit_is_logged_on_early_return()
 }
 
 #[test]
-fn indentation_does_not_leak_between_threads()
-{
+fn indentation_does_not_leak_between_threads() {
     let lines = parse_lines(&run_fixture(
         "fixture_indentation_is_per_thread",
         "all=info",
@@ -270,8 +247,7 @@ fn indentation_does_not_leak_between_threads()
 }
 
 #[test]
-fn records_from_the_log_facade_are_formatted_by_us()
-{
+fn records_from_the_log_facade_are_formatted_by_us() {
     let lines = parse_lines(&run_fixture("fixture_dependency_log_macros", "all=info"));
     let line = line_with(&lines, "emitted through the log facade");
 
@@ -281,15 +257,13 @@ fn records_from_the_log_facade_are_formatted_by_us()
 }
 
 #[test]
-fn no_topo_log_means_no_output()
-{
+fn no_topo_log_means_no_output() {
     let lines = parse_lines(&run_fixture("fixture_all_levels", ""));
     assert!(lines.is_empty(), "expected silence, got: {lines:#?}");
 }
 
 #[test]
-fn a_malformed_directive_is_reported_without_disabling_logging()
-{
+fn a_malformed_directive_is_reported_without_disabling_logging() {
     let stderr = run_fixture("fixture_all_levels", "all=info,broken=nonsense");
 
     assert!(
@@ -304,8 +278,7 @@ fn a_malformed_directive_is_reported_without_disabling_logging()
 }
 
 #[test]
-fn init_is_one_shot()
-{
+fn init_is_one_shot() {
     // Installing a global logger must be rejected the second time rather than silently
     // reconfiguring the first.
     init().unwrap();

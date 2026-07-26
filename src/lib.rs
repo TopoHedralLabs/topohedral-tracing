@@ -146,22 +146,19 @@ const MESSAGE_COLUMN: usize = 40;
 /// Subsequent log messages on this thread are indented one level further. Pair every call with a
 /// matching [`decrement_indent`]; prefer [`trace_scope!`] or [`trace_fn`], which pair them for you
 /// via [`IndentGuard`] and cannot leak on an early return or a panic.
-pub fn increment_indent()
-{
+pub fn increment_indent() {
     INDENT.with(|i| i.set(i.get().saturating_add(1)));
 }
 
 /// Decrease the indentation level of the current thread by one, saturating at zero.
 ///
 /// See [`increment_indent`].
-pub fn decrement_indent()
-{
+pub fn decrement_indent() {
     INDENT.with(|i| i.set(i.get().saturating_sub(1)));
 }
 
 /// Returns the current thread's indentation level.
-pub fn indent_level() -> usize
-{
+pub fn indent_level() -> usize {
     INDENT.with(|i| i.get())
 }
 //}}}
@@ -169,8 +166,7 @@ pub fn indent_level() -> usize
 /// The error returned by [`init`] and [`Builder::init`].
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum TraceInitError
-{
+pub enum TraceInitError {
     /// A global logger has already been installed, either by this crate or by another [`log`]
     /// backend in the same process.
     ///
@@ -179,15 +175,12 @@ pub enum TraceInitError
     AlreadyInitialized,
 }
 
-impl fmt::Display for TraceInitError
-{
+impl fmt::Display for TraceInitError {
     fn fmt(
         &self,
         f: &mut fmt::Formatter<'_>,
-    ) -> fmt::Result
-    {
-        match self
-        {
+    ) -> fmt::Result {
+        match self {
             Self::AlreadyInitialized => f.write_str("a global logger has already been installed"),
         }
     }
@@ -199,8 +192,7 @@ impl Error for TraceInitError {}
 //{{{ struct: Filters
 /// A parsed set of target filters.
 #[derive(Debug, Clone)]
-struct Filters
-{
+struct Filters {
     /// Explicit `target=level` directives, matched by module-path prefix.
     directives: Vec<(String, LevelFilter)>,
     /// Level used when no directive matches. Set by the `all` target.
@@ -208,8 +200,7 @@ struct Filters
 }
 //}}}
 //{{{ impl Filters
-impl Filters
-{
+impl Filters {
     /// Parses a `TOPO_LOG`-syntax filter string.
     ///
     /// Unparseable directives are reported through `on_error` and then skipped, matching
@@ -217,31 +208,24 @@ impl Filters
     fn parse(
         spec: &str,
         mut on_error: impl FnMut(String),
-    ) -> Self
-    {
+    ) -> Self {
         let mut filters = Self {
             directives: Vec::new(),
             default: LevelFilter::Off,
         };
 
-        for directive in spec.split(',').map(str::trim).filter(|d| !d.is_empty())
-        {
-            let (target, level) = match directive.split_once('=')
-            {
-                Some((target, level_str)) =>
-                {
-                    if level_str.contains('=')
-                    {
+        for directive in spec.split(',').map(str::trim).filter(|d| !d.is_empty()) {
+            let (target, level) = match directive.split_once('=') {
+                Some((target, level_str)) => {
+                    if level_str.contains('=') {
                         on_error(format!(
                             "filter `{directive}` has more than one `=`; expected `target=level`"
                         ));
                         continue;
                     }
-                    match parse_level(level_str.trim())
-                    {
+                    match parse_level(level_str.trim()) {
                         Some(level) => (target.trim(), level),
-                        None =>
-                        {
+                        None => {
                             on_error(format!(
                                 "filter `{directive}` has unknown level `{}`; expected one of \
                                  off/error/warn/info/debug/trace or 0-5",
@@ -255,18 +239,14 @@ impl Filters
                 None => (directive, LevelFilter::Info),
             };
 
-            if target.is_empty()
-            {
+            if target.is_empty() {
                 on_error(format!("filter `{directive}` has an empty target"));
                 continue;
             }
 
-            if target == "all"
-            {
+            if target == "all" {
                 filters.default = level;
-            }
-            else
-            {
+            } else {
                 filters.directives.push((target.to_string(), level));
             }
         }
@@ -281,8 +261,7 @@ impl Filters
     fn level_for(
         &self,
         target: &str,
-    ) -> LevelFilter
-    {
+    ) -> LevelFilter {
         self.directives
             .iter()
             .filter(|(filter, _)| target_matches(target, filter))
@@ -293,8 +272,7 @@ impl Filters
 
     /// The most verbose level any target can produce, used to set [`log::set_max_level`] so that
     /// the `log` crate can discard records before they reach us.
-    fn max_level(&self) -> LevelFilter
-    {
+    fn max_level(&self) -> LevelFilter {
         self.directives
             .iter()
             .map(|(_, level)| *level)
@@ -311,10 +289,8 @@ impl Filters
 fn target_matches(
     target: &str,
     filter: &str,
-) -> bool
-{
-    if !target.starts_with(filter)
-    {
+) -> bool {
+    if !target.starts_with(filter) {
         return false;
     }
     let rest = &target[filter.len()..];
@@ -323,10 +299,8 @@ fn target_matches(
 //}}}
 //{{{ fun: parse_level
 /// Parses a level name or its numeric shorthand.
-fn parse_level(level: &str) -> Option<LevelFilter>
-{
-    match level
-    {
+fn parse_level(level: &str) -> Option<LevelFilter> {
+    match level {
         "off" | "OFF" | "0" => Some(LevelFilter::Off),
         "error" | "ERROR" | "1" => Some(LevelFilter::Error),
         "warn" | "WARN" | "2" => Some(LevelFilter::Warn),
@@ -340,22 +314,18 @@ fn parse_level(level: &str) -> Option<LevelFilter>
 //}}}
 //{{{ collection: output sink
 /// Where formatted records are written.
-enum Sink
-{
+enum Sink {
     Stderr,
     Stdout,
     Writer(Mutex<Box<dyn Write + Send>>),
 }
 
-impl fmt::Debug for Sink
-{
+impl fmt::Debug for Sink {
     fn fmt(
         &self,
         f: &mut fmt::Formatter<'_>,
-    ) -> fmt::Result
-    {
-        match self
-        {
+    ) -> fmt::Result {
+        match self {
             Self::Stderr => f.write_str("Stderr"),
             Self::Stdout => f.write_str("Stdout"),
             Self::Writer(_) => f.write_str("Writer(..)"),
@@ -363,13 +333,10 @@ impl fmt::Debug for Sink
     }
 }
 
-impl Sink
-{
+impl Sink {
     /// Whether this sink is a terminal, and so whether colour is appropriate by default.
-    fn is_terminal(&self) -> bool
-    {
-        match self
-        {
+    fn is_terminal(&self) -> bool {
+        match self {
             Self::Stderr => io::stderr().is_terminal(),
             Self::Stdout => io::stdout().is_terminal(),
             // A caller-supplied writer is assumed not to be a terminal; `Builder::color` can
@@ -381,30 +348,24 @@ impl Sink
     fn write_line(
         &self,
         line: &str,
-    )
-    {
+    ) {
         // Logging must never take down the program, so write errors (a closed pipe, most often)
         // are dropped rather than propagated or panicked on.
-        match self
-        {
+        match self {
             Self::Stderr => drop(writeln!(io::stderr().lock(), "{line}")),
             Self::Stdout => drop(writeln!(io::stdout().lock(), "{line}")),
-            Self::Writer(writer) =>
-            {
+            Self::Writer(writer) => {
                 let mut guard = writer.lock().unwrap_or_else(|e| e.into_inner());
                 drop(writeln!(guard, "{line}"));
             }
         }
     }
 
-    fn flush(&self)
-    {
-        match self
-        {
+    fn flush(&self) {
+        match self {
             Self::Stderr => drop(io::stderr().flush()),
             Self::Stdout => drop(io::stdout().flush()),
-            Self::Writer(writer) =>
-            {
+            Self::Writer(writer) => {
                 let mut guard = writer.lock().unwrap_or_else(|e| e.into_inner());
                 drop(guard.flush());
             }
@@ -419,31 +380,26 @@ impl Sink
 /// It is immutable once installed: filters are fixed at construction and indentation lives in
 /// thread-local state, so logging takes no shared lock beyond the one the output stream imposes.
 #[derive(Debug)]
-struct Logger
-{
+struct Logger {
     filters: Filters,
     sink: Sink,
     color: bool,
 }
 //}}}
 //{{{ impl log::Log for Logger
-impl Log for Logger
-{
+impl Log for Logger {
     fn enabled(
         &self,
         metadata: &Metadata<'_>,
-    ) -> bool
-    {
+    ) -> bool {
         metadata.level() <= self.filters.level_for(metadata.target())
     }
 
     fn log(
         &self,
         record: &Record<'_>,
-    )
-    {
-        if !self.enabled(record.metadata())
-        {
+    ) {
+        if !self.enabled(record.metadata()) {
             return;
         }
 
@@ -455,12 +411,9 @@ impl Log for Logger
         // would make the level column wider than it looks and misalign coloured output against
         // uncoloured output.
         let level_field = format!("{:<5}", level.as_str());
-        let level_field = if self.color
-        {
+        let level_field = if self.color {
             level_field.color(level_color(level)).to_string()
-        }
-        else
-        {
+        } else {
             level_field
         };
 
@@ -477,18 +430,15 @@ impl Log for Logger
         ));
     }
 
-    fn flush(&self)
-    {
+    fn flush(&self) {
         self.sink.flush();
     }
 }
 //}}}
 //{{{ fun: level_color
 /// The colour each level is rendered in.
-fn level_color(level: Level) -> &'static str
-{
-    match level
-    {
+fn level_color(level: Level) -> &'static str {
+    match level {
         Level::Error => "red",
         Level::Warn => "yellow",
         Level::Info => "green",
@@ -503,17 +453,13 @@ fn level_color(level: Level) -> &'static str
 /// The file name is retained in full (including its extension) and, for the `mod.rs` and
 /// `lib.rs`/`main.rs` cases where the name alone says nothing, the parent directory is kept too:
 /// `src/parser/mod.rs` renders as `parser/mod.rs` rather than a bare `mod`.
-fn file_label(full_path: &str) -> &str
-{
+fn file_label(full_path: &str) -> &str {
     let path = Path::new(full_path);
-    let Some(name) = path.file_name().and_then(|n| n.to_str())
-    else
-    {
+    let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
         return full_path;
     };
 
-    if matches!(name, "mod.rs" | "lib.rs" | "main.rs")
-    {
+    if matches!(name, "mod.rs" | "lib.rs" | "main.rs") {
         if let Some(parent) = path
             .parent()
             .and_then(|p| p.file_name())
@@ -536,13 +482,11 @@ fn file_label(full_path: &str) -> &str
 /// the number is extracted from that rendering.
 struct ThreadIdLabel(thread::ThreadId);
 
-impl fmt::Display for ThreadIdLabel
-{
+impl fmt::Display for ThreadIdLabel {
     fn fmt(
         &self,
         f: &mut fmt::Formatter<'_>,
-    ) -> fmt::Result
-    {
+    ) -> fmt::Result {
         let debug = format!("{:?}", self.0);
         let number = debug
             .find('(')
@@ -575,27 +519,22 @@ impl fmt::Display for ThreadIdLabel
 ///     .expect("tracing initialises once");
 /// ```
 #[derive(Debug)]
-pub struct Builder
-{
+pub struct Builder {
     filters: Option<String>,
     sink: Sink,
     color: Option<bool>,
 }
 
-impl Default for Builder
-{
-    fn default() -> Self
-    {
+impl Default for Builder {
+    fn default() -> Self {
         Self::new()
     }
 }
 
-impl Builder
-{
+impl Builder {
     /// Creates a builder that reads its filters from `TOPO_LOG`, writes to stderr, and colours
     /// output when stderr is a terminal.
-    pub fn new() -> Self
-    {
+    pub fn new() -> Self {
         Self {
             filters: None,
             sink: Sink::Stderr,
@@ -608,24 +547,21 @@ impl Builder
     pub fn filters(
         mut self,
         spec: impl Into<String>,
-    ) -> Self
-    {
+    ) -> Self {
         self.filters = Some(spec.into());
         self
     }
 
     /// Writes records to stderr. This is the default.
     #[must_use]
-    pub fn stderr(mut self) -> Self
-    {
+    pub fn stderr(mut self) -> Self {
         self.sink = Sink::Stderr;
         self
     }
 
     /// Writes records to stdout.
     #[must_use]
-    pub fn stdout(mut self) -> Self
-    {
+    pub fn stdout(mut self) -> Self {
         self.sink = Sink::Stdout;
         self
     }
@@ -637,8 +573,7 @@ impl Builder
     pub fn writer(
         mut self,
         writer: Box<dyn Write + Send>,
-    ) -> Self
-    {
+    ) -> Self {
         self.sink = Sink::Writer(Mutex::new(writer));
         self
     }
@@ -651,8 +586,7 @@ impl Builder
     pub fn color(
         mut self,
         color: bool,
-    ) -> Self
-    {
+    ) -> Self {
         self.color = Some(color);
         self
     }
@@ -664,17 +598,13 @@ impl Builder
     /// Returns [`TraceInitError::AlreadyInitialized`] if a global logger is already installed.
     /// Malformed filter directives are not an error: each is reported on stderr and skipped, so a
     /// typo in `TOPO_LOG` cannot silently disable logging or prevent startup.
-    pub fn init(self) -> Result<(), TraceInitError>
-    {
-        let spec = match self.filters
-        {
+    pub fn init(self) -> Result<(), TraceInitError> {
+        let spec = match self.filters {
             Some(spec) => spec,
-            None => match std::env::var("TOPO_LOG")
-            {
+            None => match std::env::var("TOPO_LOG") {
                 Ok(spec) => spec,
                 Err(std::env::VarError::NotPresent) => String::new(),
-                Err(std::env::VarError::NotUnicode(_)) =>
-                {
+                Err(std::env::VarError::NotUnicode(_)) => {
                     eprintln!("topohedral-tracing: TOPO_LOG is not valid unicode; ignoring it");
                     String::new()
                 }
@@ -716,8 +646,7 @@ impl Builder
 ///
 /// Returns [`TraceInitError::AlreadyInitialized`] if a global logger is already installed, whether
 /// by this crate or by another [`log`] backend.
-pub fn init() -> Result<(), TraceInitError>
-{
+pub fn init() -> Result<(), TraceInitError> {
     Builder::new().init()
 }
 //}}}
@@ -736,8 +665,7 @@ pub fn init() -> Result<(), TraceInitError>
 /// means it cannot be held across an `.await` in a task that migrates between executor threads.
 #[derive(Debug)]
 #[must_use = "the scope ends as soon as the guard is dropped; bind it to a variable"]
-pub struct IndentGuard
-{
+pub struct IndentGuard {
     name: Cow<'static, str>,
     target: &'static str,
     file: &'static str,
@@ -746,8 +674,7 @@ pub struct IndentGuard
     _not_send: PhantomData<*const ()>,
 }
 
-impl IndentGuard
-{
+impl IndentGuard {
     /// Logs entry to a named scope and indents subsequent messages until the guard is dropped.
     ///
     /// `target` is the filter target for the entry and exit records, conventionally the calling
@@ -759,8 +686,7 @@ impl IndentGuard
     pub fn new(
         target: &'static str,
         name: impl Into<Cow<'static, str>>,
-    ) -> Self
-    {
+    ) -> Self {
         let location = std::panic::Location::caller();
         Self::with_location(target, name, location.file(), location.line())
     }
@@ -774,11 +700,9 @@ impl IndentGuard
         name: impl Into<Cow<'static, str>>,
         file: &'static str,
         line: u32,
-    ) -> Self
-    {
+    ) -> Self {
         let name = name.into();
-        if ENABLED
-        {
+        if ENABLED {
             __private::log_record(
                 target,
                 SCOPE_LEVEL,
@@ -798,12 +722,9 @@ impl IndentGuard
     }
 }
 
-impl Drop for IndentGuard
-{
-    fn drop(&mut self)
-    {
-        if ENABLED
-        {
+impl Drop for IndentGuard {
+    fn drop(&mut self) {
+        if ENABLED {
             decrement_indent();
             __private::log_record(
                 self.target,
@@ -951,8 +872,7 @@ macro_rules! error {
 ///
 /// Not public API: anything here may change or disappear in a patch release.
 #[doc(hidden)]
-pub mod __private
-{
+pub mod __private {
     use super::*;
 
     /// Emits a record with an explicit source location.
@@ -966,10 +886,8 @@ pub mod __private
         file: &'static str,
         line: u32,
         args: fmt::Arguments<'_>,
-    )
-    {
-        if level > log::max_level()
-        {
+    ) {
+        if level > log::max_level() {
             return;
         }
         log::logger().log(
@@ -987,13 +905,11 @@ pub mod __private
 //}}}
 //{{{ collection: tests
 #[cfg(test)]
-mod tests
-{
+mod tests {
     use super::*;
 
     #[test]
-    fn target_matching_respects_module_boundaries()
-    {
+    fn target_matching_respects_module_boundaries() {
         assert!(target_matches("my_app", "my_app"));
         assert!(target_matches("my_app::solver", "my_app"));
         assert!(target_matches("my_app::solver::inner", "my_app::solver"));
@@ -1003,8 +919,7 @@ mod tests
     }
 
     #[test]
-    fn longest_matching_directive_wins()
-    {
+    fn longest_matching_directive_wins() {
         let filters = Filters::parse("all=error,my_app=debug,my_app::solver=warn", |e| {
             panic!("unexpected parse error: {e}")
         });
@@ -1022,24 +937,21 @@ mod tests
     }
 
     #[test]
-    fn all_is_a_default_not_a_floor()
-    {
+    fn all_is_a_default_not_a_floor() {
         let filters = Filters::parse("all=debug,noisy=off", |e| panic!("unexpected: {e}"));
         assert_eq!(filters.level_for("noisy"), LevelFilter::Off);
         assert_eq!(filters.level_for("quiet"), LevelFilter::Debug);
     }
 
     #[test]
-    fn bare_target_defaults_to_info_and_numbers_are_accepted()
-    {
+    fn bare_target_defaults_to_info_and_numbers_are_accepted() {
         let filters = Filters::parse("bare,numeric=5", |e| panic!("unexpected: {e}"));
         assert_eq!(filters.level_for("bare"), LevelFilter::Info);
         assert_eq!(filters.level_for("numeric"), LevelFilter::Trace);
     }
 
     #[test]
-    fn malformed_directives_are_reported_and_skipped()
-    {
+    fn malformed_directives_are_reported_and_skipped() {
         let mut problems = Vec::new();
         let filters = Filters::parse("good=debug,bad=nonsense,a=b=c,=empty", |e| problems.push(e));
 
@@ -1049,23 +961,20 @@ mod tests
     }
 
     #[test]
-    fn empty_spec_disables_everything()
-    {
+    fn empty_spec_disables_everything() {
         let filters = Filters::parse("", |e| panic!("unexpected: {e}"));
         assert_eq!(filters.level_for("anything"), LevelFilter::Off);
         assert_eq!(filters.max_level(), LevelFilter::Off);
     }
 
     #[test]
-    fn max_level_covers_the_most_verbose_directive()
-    {
+    fn max_level_covers_the_most_verbose_directive() {
         let filters = Filters::parse("all=warn,chatty=trace", |e| panic!("unexpected: {e}"));
         assert_eq!(filters.max_level(), LevelFilter::Trace);
     }
 
     #[test]
-    fn file_label_keeps_enough_of_the_path_to_disambiguate()
-    {
+    fn file_label_keeps_enough_of_the_path_to_disambiguate() {
         assert_eq!(file_label("src/solver.rs"), "solver.rs");
         assert_eq!(file_label("src/parser/mod.rs"), "parser/mod.rs");
         assert_eq!(file_label("src/lib.rs"), "src/lib.rs");
@@ -1073,8 +982,7 @@ mod tests
     }
 
     #[test]
-    fn indentation_is_thread_local_and_saturates()
-    {
+    fn indentation_is_thread_local_and_saturates() {
         assert_eq!(indent_level(), 0);
         decrement_indent();
         assert_eq!(indent_level(), 0, "must saturate rather than underflow");
@@ -1092,12 +1000,10 @@ mod tests
     }
 
     #[test]
-    fn indent_guard_is_not_send()
-    {
+    fn indent_guard_is_not_send() {
         // Compile-time assertion mirroring the `!Send` requirement; if `IndentGuard` ever gains
         // `Send` this stops compiling.
-        trait AmbiguousIfSend<A>
-        {
+        trait AmbiguousIfSend<A> {
             fn maybe(&self) {}
         }
         impl<T: ?Sized> AmbiguousIfSend<()> for T {}

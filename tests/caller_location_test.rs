@@ -17,30 +17,25 @@ use topohedral_tracing::{info, init, trace_fn, trace_scope, IndentGuard};
 //{{{ fixtures
 
 #[trace_fn]
-fn traced_function()
-{
+fn traced_function() {
     info!("inside traced_function");
     nested_scope();
 }
 
-fn nested_scope()
-{
+fn nested_scope() {
     trace_scope!("nested_scope");
     info!("inside nested_scope");
 }
 
-fn manual_guard_scope()
-{
+fn manual_guard_scope() {
     // The target is supplied explicitly; `IndentGuard` cannot determine the caller's module.
     let _guard = IndentGuard::new("fixture_target::inner", "manual_guard_scope");
     info!(target: "fixture_target::inner", "inside manual_guard_scope");
 }
 
 #[test]
-fn fixture_scopes()
-{
-    if common::skip_fixture()
-    {
+fn fixture_scopes() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
@@ -53,8 +48,7 @@ fn fixture_scopes()
 //{{{ tests
 
 #[test]
-fn scope_records_name_the_client_file()
-{
+fn scope_records_name_the_client_file() {
     let stderr = run_fixture("fixture_scopes", "all=info");
     let lines = parse_lines(&stderr);
     let scopes: Vec<_> = lines
@@ -63,8 +57,7 @@ fn scope_records_name_the_client_file()
         .collect();
 
     assert!(!scopes.is_empty(), "expected scope records:\n{stderr}");
-    for line in &scopes
-    {
+    for line in &scopes {
         assert_eq!(
             line.file, "caller_location_test.rs",
             "scope record should point at the client, not the library: {line:?}"
@@ -73,13 +66,11 @@ fn scope_records_name_the_client_file()
 }
 
 #[test]
-fn every_scope_is_entered_and_left()
-{
+fn every_scope_is_entered_and_left() {
     let lines = parse_lines(&run_fixture("fixture_scopes", "all=info"));
     let all = messages(&lines);
 
-    for name in ["traced_function", "nested_scope", "manual_guard_scope"]
-    {
+    for name in ["traced_function", "nested_scope", "manual_guard_scope"] {
         assert!(
             all.contains(&format!("* Entering {name}").as_str()),
             "missing entry for {name}: {all:#?}"
@@ -92,8 +83,7 @@ fn every_scope_is_entered_and_left()
 }
 
 #[test]
-fn trace_fn_and_trace_scope_nest()
-{
+fn trace_fn_and_trace_scope_nest() {
     let lines = parse_lines(&run_fixture("fixture_scopes", "all=info"));
 
     assert_eq!(line_with(&lines, "* Entering traced_function").indent, 0);
@@ -103,8 +93,7 @@ fn trace_fn_and_trace_scope_nest()
 }
 
 #[test]
-fn a_scope_target_is_the_callers_module_and_is_filterable()
-{
+fn a_scope_target_is_the_callers_module_and_is_filterable() {
     // `trace_scope!` inside this integration test uses `module_path!()` at the call site, which is
     // the test crate's root. Filtering on it must select those records and nothing else.
     let lines = parse_lines(&run_fixture(
@@ -124,8 +113,7 @@ fn a_scope_target_is_the_callers_module_and_is_filterable()
 }
 
 #[test]
-fn an_explicit_scope_target_is_matched_by_prefix()
-{
+fn an_explicit_scope_target_is_matched_by_prefix() {
     // The guard's target is `fixture_target::inner`; a filter on the parent must match it.
     let lines = parse_lines(&run_fixture(
         "fixture_scopes",

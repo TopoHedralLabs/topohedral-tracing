@@ -16,8 +16,7 @@ use topohedral_tracing::{
 //{{{ compile-time surface
 
 #[trace_fn]
-fn traced() -> i32
-{
+fn traced() -> i32 {
     trace!("inside traced");
     7
 }
@@ -25,15 +24,13 @@ fn traced() -> i32
 #[trace_fn("renamed")]
 fn traced_with_name() {}
 
-fn scoped() -> i32
-{
+fn scoped() -> i32 {
     trace_scope!("scoped");
     computed_name(3);
     traced()
 }
 
-fn computed_name(block: u32)
-{
+fn computed_name(block: u32) {
     // A literal name borrows; a computed one allocates. Both must be accepted.
     trace_scope!(format!("block {block}"));
 }
@@ -42,10 +39,8 @@ fn computed_name(block: u32)
 //{{{ fixtures
 
 #[test]
-fn fixture_emit_everything()
-{
-    if common::skip_fixture()
-    {
+fn fixture_emit_everything() {
+    if common::skip_fixture() {
         return;
     }
     init().unwrap();
@@ -63,8 +58,7 @@ fn fixture_emit_everything()
 //{{{ tests
 
 #[test]
-fn enabled_reflects_this_crates_feature_not_the_callers()
-{
+fn enabled_reflects_this_crates_feature_not_the_callers() {
     // This test crate declares no feature of its own, yet must agree with the library. Under the
     // old `#[cfg(feature = ..)]`-in-macro-body design the switch was resolved against the calling
     // crate, so this is the property that regressed.
@@ -72,21 +66,18 @@ fn enabled_reflects_this_crates_feature_not_the_callers()
 }
 
 #[test]
-fn every_macro_compiles_and_evaluates_to_unit()
-{
+fn every_macro_compiles_and_evaluates_to_unit() {
     // Statement, expression and tail positions must all type-check identically in both
     // configurations.
     let unit: () = info!("unit valued");
     assert_eq!(unit, ());
 
-    match 1
-    {
+    match 1 {
         0 => trace!("in the zero arm"),
         _ => trace!("in the fallback arm"),
     }
 
-    if true
-    {
+    if true {
         debug!("in a branch");
     }
 
@@ -97,8 +88,7 @@ fn every_macro_compiles_and_evaluates_to_unit()
 }
 
 #[test]
-fn indentation_helpers_are_always_callable()
-{
+fn indentation_helpers_are_always_callable() {
     // These are ordinary functions rather than macros, so they exist in both configurations.
     let before = indent_level();
     increment_indent();
@@ -108,8 +98,7 @@ fn indentation_helpers_are_always_callable()
 }
 
 #[test]
-fn a_guard_can_be_constructed_in_either_configuration()
-{
+fn a_guard_can_be_constructed_in_either_configuration() {
     let guard = IndentGuard::new("feature_switch_test", "explicit");
     // The guard raises indentation only when trace points are compiled in; either way the type
     // exists and has a single constructor signature.
@@ -119,8 +108,7 @@ fn a_guard_can_be_constructed_in_either_configuration()
 }
 
 #[test]
-fn this_crates_trace_points_follow_the_switch()
-{
+fn this_crates_trace_points_follow_the_switch() {
     let lines = parse_lines(&run_fixture("fixture_emit_everything", "all=trace"));
     let ours: Vec<&str> = lines
         .iter()
@@ -128,8 +116,7 @@ fn this_crates_trace_points_follow_the_switch()
         .filter(|m| *m != "via the log facade")
         .collect();
 
-    if ENABLED
-    {
+    if ENABLED {
         assert!(!ours.is_empty(), "expected output when the switch is on");
         assert!(ours.contains(&"* Entering scoped"), "{ours:#?}");
         assert!(
@@ -140,9 +127,7 @@ fn this_crates_trace_points_follow_the_switch()
             ours.contains(&"* Entering block 3"),
             "computed scope names should be honoured: {ours:#?}"
         );
-    }
-    else
-    {
+    } else {
         assert!(
             ours.is_empty(),
             "the switch is off, so this crate's trace points should emit nothing: {ours:#?}"
@@ -151,8 +136,7 @@ fn this_crates_trace_points_follow_the_switch()
 }
 
 #[test]
-fn the_log_facade_is_served_in_both_configurations()
-{
+fn the_log_facade_is_served_in_both_configurations() {
     // The compile-time switch erases *this crate's* macros. It cannot erase a dependency's
     // `log::` calls, and it should not try to: the installed backend stays useful in non-tracing
     // builds, which is where a dependency's warnings and errors matter most.

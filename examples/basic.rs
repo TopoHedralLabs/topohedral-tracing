@@ -13,13 +13,11 @@
 
 use topohedral_tracing::{debug, error, info, trace, trace_fn, trace_scope, warn, ENABLED};
 
-mod solver
-{
+mod solver {
     use topohedral_tracing::{debug, info, trace_fn};
 
     #[trace_fn]
-    pub fn solve(input: u32) -> u32
-    {
+    pub fn solve(input: u32) -> u32 {
         info!("solving for {input}");
         let candidate = refine(input);
         debug!("settled on {candidate}");
@@ -27,10 +25,8 @@ mod solver
     }
 
     #[trace_fn("refine step")]
-    fn refine(input: u32) -> u32
-    {
-        for step in 0..2
-        {
+    fn refine(input: u32) -> u32 {
+        for step in 0..2 {
             debug!("refinement step {step}");
         }
         input * 2
@@ -38,8 +34,7 @@ mod solver
 }
 
 #[trace_fn]
-fn run()
-{
+fn run() {
     trace!("the most verbose level");
     debug!("a debug detail");
     info!("an informational message");
@@ -55,12 +50,10 @@ fn run()
     info!(target: "basic::results", "the answer is {answer}");
 }
 
-fn main()
-{
+fn main() {
     topohedral_tracing::init().expect("tracing initialises once");
 
-    if !ENABLED
-    {
+    if !ENABLED {
         eprintln!(
             "note: built without the `trace` feature, so no trace output will appear.\n      \
              try: TOPO_LOG=all=trace cargo run --example basic --features trace"
