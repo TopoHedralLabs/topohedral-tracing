@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"attr":["trace_fn"],"constant":["ENABLED"],"enum":["TraceInitError"],"fn":["decrement_indent","increment_indent","indent_level","init"],"macro":[["debug",1],["error",1],["info",1],["trace",1],["trace_scope",1],["warn",1]],"struct":["Builder","IndentGuard"]};
