@@ -30,6 +30,7 @@ nav:
       - Logging Messages: user-guide/logging.md
       - Scope Tracing: user-guide/scope-tracing.md
       - Troubleshooting: user-guide/troubleshooting.md
+  - API Docs: api/
   - Developers:
       - Overview: developers/index.md
       - Building Docs: developers/building-docs.md
