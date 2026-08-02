@@ -100,6 +100,7 @@ use std::sync::Mutex;
 use std::thread;
 //}}}
 //{{{ dep imports
+#[cfg(feature = "color")]
 use colored::Colorize;
 #[doc(hidden)]
 pub use log;
@@ -411,11 +412,7 @@ impl Log for Logger {
         // would make the level column wider than it looks and misalign coloured output against
         // uncoloured output.
         let level_field = format!("{:<5}", level.as_str());
-        let level_field = if self.color {
-            level_field.color(level_color(level)).to_string()
-        } else {
-            level_field
-        };
+        let level_field = format_level(level_field, level, self.color);
 
         let location = format!("{file}:{line}");
         let padding = MESSAGE_COLUMN.saturating_sub(location.len()).max(1);
@@ -435,8 +432,34 @@ impl Log for Logger {
     }
 }
 //}}}
+//{{{ fun: format_level
+/// Applies the configured level colour when colour support is compiled in.
+#[cfg(feature = "color")]
+fn format_level(
+    level_field: String,
+    level: Level,
+    color: bool,
+) -> String {
+    if color {
+        level_field.color(level_color(level)).to_string()
+    } else {
+        level_field
+    }
+}
+
+/// Returns plain level text when colour support is not compiled in.
+#[cfg(not(feature = "color"))]
+fn format_level(
+    level_field: String,
+    _level: Level,
+    _color: bool,
+) -> String {
+    level_field
+}
+//}}}
 //{{{ fun: level_color
 /// The colour each level is rendered in.
+#[cfg(feature = "color")]
 fn level_color(level: Level) -> &'static str {
     match level {
         Level::Error => "red",
@@ -532,8 +555,9 @@ impl Default for Builder {
 }
 
 impl Builder {
-    /// Creates a builder that reads its filters from `TOPO_LOG`, writes to stderr, and colours
-    /// output when stderr is a terminal.
+    /// Creates a builder that reads its filters from `TOPO_LOG` and writes to stderr.
+    ///
+    /// With the `color` feature enabled, output is coloured when stderr is a terminal.
     pub fn new() -> Self {
         Self {
             filters: None,
@@ -580,8 +604,9 @@ impl Builder {
 
     /// Forces colour on or off, overriding terminal detection.
     ///
-    /// By default colour is used when the chosen sink is a terminal and the `NO_COLOR`
-    /// environment variable is unset.
+    /// By default colour is used when the `color` feature is enabled, the chosen sink is a
+    /// terminal, and the `NO_COLOR` environment variable is unset. This setting has no effect
+    /// when the `color` feature is disabled.
     #[must_use]
     pub fn color(
         mut self,
