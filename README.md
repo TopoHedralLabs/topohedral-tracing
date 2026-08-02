@@ -43,7 +43,7 @@ required of your own crate:
 
 ```toml
 [dependencies]
-topohedral-tracing = { version = "0.2", registry = "cloudsmith", features = ["trace"] }
+topohedral-tracing = { version = "0.3", registry = "cloudsmith", features = ["trace"] }
 ```
 
 It is still common to forward it from a feature of your own so it can be toggled per build:
@@ -55,6 +55,13 @@ trace = ["topohedral-tracing/trace"]
 
 Either form works. Enabling the feature anywhere in the dependency graph enables it for every
 crate, and the constant `topohedral_tracing::ENABLED` reports which build you are in.
+
+Terminal colours are a separate opt-in so the default dependency graph remains permissively
+licensed and output remains plain:
+
+```toml
+topohedral-tracing = { version = "0.3", registry = "cloudsmith", features = ["trace", "color"] }
+```
 
 When the feature is off, the macro bodies are dead branches that the optimiser removes. Arguments
 are still type-checked but never evaluated, so **do not put required work inside a log call**:
@@ -105,7 +112,8 @@ Full documentation is in `docs/website`. See `CHANGELOG.md` for the semver polic
 
 ```console
 cargo test                          # tracing compiled out (the default consumers get)
-cargo test --features trace         # tracing compiled in
+cargo test --features trace         # tracing compiled in, plain output
+cargo test --features trace,color   # tracing and optional colour support
 cargo run --example basic --features trace
 ```
 

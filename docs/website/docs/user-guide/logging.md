@@ -64,15 +64,16 @@ standard output or to any `Write` sink. Each line contains:
 [LEVEL(thread) file:line]          indentation message
 ```
 
-- `LEVEL` is colored by severity when coloring is active;
+- `LEVEL` is colored by severity when the optional `color` feature is active;
 - `thread` identifies the current operating-system thread;
 - `file` is the source file name, with its parent directory for `mod.rs`,
   `lib.rs` and `main.rs` where the name alone would be ambiguous;
 - `line` is the macro call's source line; and
 - four spaces are added for each active indentation level.
 
-Color is used only when the output stream is a terminal, so redirected output is
-already plain. Set `NO_COLOR=1` to force it off, for example in a snapshot test:
+With the `color` feature enabled, color is used only when the output stream is a
+terminal, so redirected output is already plain. Set `NO_COLOR=1` to force it
+off, for example in a snapshot test:
 
 ```console
 NO_COLOR=1 TOPO_LOG=all=debug cargo run --features trace

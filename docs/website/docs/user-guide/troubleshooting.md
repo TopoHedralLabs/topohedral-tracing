@@ -87,16 +87,18 @@ repository is a working harness for that pattern.
 
 ## Output contains ANSI colors
 
-Color is enabled only when the output stream is a terminal, so redirected or
-piped output is already plain. To force it off explicitly, set the standard
-`NO_COLOR` environment variable:
+Color is available only when the crate's `color` feature is enabled and the
+output stream is a terminal, so default, redirected, or piped output is plain.
+To force it off explicitly in a color-enabled build, set the standard `NO_COLOR`
+environment variable:
 
 ```console
 NO_COLOR=1 TOPO_LOG=all=trace cargo run --features trace
 ```
 
 `Builder::color(false)` does the same programmatically, and
-`Builder::color(true)` forces color on for a non-terminal sink.
+`Builder::color(true)` forces color on for a non-terminal sink when color
+support was compiled in.
 
 ## Changing `TOPO_LOG` has no effect
 

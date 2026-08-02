@@ -77,6 +77,9 @@ Builder::new()
     .expect("tracing should initialize");
 ```
 
+Color support must also be compiled with the optional `color` Cargo feature.
+Without that feature, `Builder::color` is accepted but output remains plain.
+
 ## `TOPO_LOG` syntax
 
 The variable is a comma-separated list of filters:

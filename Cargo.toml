@@ -1,6 +1,6 @@
 [package]
 name = "topohedral-tracing"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["John Ferguson <JAFerguson952@gmail.com>"]
 edition = "2021"
 rust-version = "1.70"
@@ -18,7 +18,7 @@ publish = ["cloudsmith"]
 members = [".", "topohedral-tracing-macros"]
 
 [dependencies]
-colored = "3.0.0"
+colored = { version = "3.0.0", optional = true }
 log = { version = "0.4.29", features = ["std"] }
 topohedral-tracing-macros = { version = "0.2.0", path = "topohedral-tracing-macros", registry = "cloudsmith" }
 
@@ -27,6 +27,6 @@ default = []
 # Compiles the bodies of the logging macros. Without it every trace point is
 # erased at compile time.
 trace = []
-# Deprecated alias for `trace`, kept for one release to ease the 0.1 -> 0.2
-# migration. Prefer `trace`; this will be removed in 0.3.
-enable_trace = ["trace"]
+# Adds ANSI colours to terminal output. Plain output is used when this feature
+# is disabled, even if `Builder::color(true)` is requested.
+color = ["dep:colored"]

@@ -18,6 +18,19 @@ The following are part of the public API and change only with a major (pre-1.0: 
 The `__private` module and every `#[doc(hidden)]` item may change in any release. `TOPO_LOG`
 syntax is treated as API; changes to its *semantics* are called out below.
 
+## [0.3.0]
+
+### Changed — breaking
+
+- ANSI colour support is now optional behind the `color` feature. The default
+  feature graph is colour-free and uses a plain-text formatting path.
+- The deprecated `enable_trace` feature alias has been removed. Use `trace`.
+- `Builder::color(true)` has no effect unless the `color` feature is enabled.
+
+This release lets downstream numerical crates enable instrumentation without
+bringing the MPL-2.0-licensed `colored` dependency into their default or trace
+feature graphs.
+
 ## [0.2.0]
 
 A correctness release. Two defects made the crate unusable as published, and fixing them properly
@@ -120,3 +133,4 @@ required breaking changes, so the API-guideline cleanup is bundled into the same
 
 [`ENABLED`]: https://docs.rs/topohedral-tracing/latest/topohedral_tracing/constant.ENABLED.html
 [`Builder`]: https://docs.rs/topohedral-tracing/latest/topohedral_tracing/struct.Builder.html
+[0.3.0]: https://github.com/TopoHedralLabs/topohedral-tracing/compare/v0.2.0...v0.3.0

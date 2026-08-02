@@ -98,8 +98,8 @@ The output is written to standard error and resembles:
 [INFO (1) src/main.rs:14]               answer = 42
 ```
 
-Source line numbers and spacing vary with the program. In a color-capable
-terminal, the level name is colored.
+Source line numbers and spacing vary with the program. When the optional
+`color` feature is enabled, the level name is colored in a capable terminal.
 
 ## Verify the two switches
 
