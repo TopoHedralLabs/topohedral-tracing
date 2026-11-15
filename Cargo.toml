@@ -2,8 +2,8 @@
 name = "topohedral-tracing"
 version = "0.3.0"
 authors = ["John Ferguson <JAFerguson952@gmail.com>"]
-edition = "2021"
-rust-version = "1.70"
+edition = "2024"
+rust-version = "1.85"
 repository = "https://github.com/TopoHedralLabs/topohedral-tracing"
 homepage = "https://github.com/TopoHedralLabs/topohedral-tracing"
 documentation = "https://docs.rs/topohedral-tracing"
