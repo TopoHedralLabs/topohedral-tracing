@@ -8,7 +8,8 @@
             "cargo": {
                 "args": [
                     "test", 
-                    "--features enable_trace",
+                    "--features",
+                    "trace",
                     "--lib",
                     "--no-run",
                     "--package=topohedral-tracing"
