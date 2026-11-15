@@ -19,10 +19,10 @@
 //! the crate that re-exports it. Tested examples live in `topohedral-tracing` itself.)
 
 use proc_macro::TokenStream;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream as TokenStream2};
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::{quote, quote_spanned};
-use syn::{parse_macro_input, Ident, ItemFn, LitStr};
+use syn::{Ident, ItemFn, LitStr, parse_macro_input};
 
 /// Instruments a function with automatic scope logging.
 ///

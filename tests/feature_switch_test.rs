@@ -9,8 +9,8 @@ mod common;
 
 use common::{parse_lines, run_fixture};
 use topohedral_tracing::{
-    debug, error, increment_indent, indent_level, info, init, trace, trace_fn, trace_scope,
-    IndentGuard, ENABLED,
+    ENABLED, IndentGuard, debug, error, increment_indent, indent_level, info, init, trace,
+    trace_fn, trace_scope,
 };
 
 //{{{ compile-time surface

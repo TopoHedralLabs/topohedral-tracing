@@ -1,9 +1,9 @@
 [package]
 name = "topohedral-tracing-macros"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["John Ferguson <JAFerguson952@gmail.com>"]
-edition = "2021"
-rust-version = "1.70"
+edition = "2024"
+rust-version = "1.85"
 repository = "https://github.com/TopoHedralLabs/topohedral-tracing"
 license = "MIT"
 description = "Procedural macros for topohedral-tracing. Provides the #[trace_fn] attribute macro."

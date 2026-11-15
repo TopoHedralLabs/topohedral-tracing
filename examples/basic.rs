@@ -11,7 +11,7 @@
 //! TOPO_LOG=all=warn,basic::solver=trace cargo run --example basic --features trace
 //! ```
 
-use topohedral_tracing::{debug, error, info, trace, trace_fn, trace_scope, warn, ENABLED};
+use topohedral_tracing::{ENABLED, debug, error, info, trace, trace_fn, trace_scope, warn};
 
 mod solver {
     use topohedral_tracing::{debug, info, trace_fn};

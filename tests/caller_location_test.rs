@@ -12,7 +12,7 @@
 mod common;
 
 use common::{line_with, messages, parse_lines, run_fixture};
-use topohedral_tracing::{info, init, trace_fn, trace_scope, IndentGuard};
+use topohedral_tracing::{IndentGuard, info, init, trace_fn, trace_scope};
 
 //{{{ fixtures
 

@@ -1,11 +1,10 @@
 [package]
 name = "topohedral-tracing"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["John Ferguson <JAFerguson952@gmail.com>"]
-edition = "2021"
-rust-version = "1.70"
+edition = "2024"
+rust-version = "1.85"
 repository = "https://github.com/TopoHedralLabs/topohedral-tracing"
-homepage = "https://github.com/TopoHedralLabs/topohedral-tracing"
 documentation = "https://docs.rs/topohedral-tracing"
 readme = "README.md"
 license = "MIT"
@@ -20,7 +19,7 @@ members = [".", "topohedral-tracing-macros"]
 [dependencies]
 colored = { version = "3.0.0", optional = true }
 log = { version = "0.4.29", features = ["std"] }
-topohedral-tracing-macros = { version = "0.2.0", path = "topohedral-tracing-macros", registry = "cloudsmith" }
+topohedral-tracing-macros = { version = "0.2.1", path = "topohedral-tracing-macros", registry = "cloudsmith" }
 
 [features]
 default = []
